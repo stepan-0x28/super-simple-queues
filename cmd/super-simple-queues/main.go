@@ -2,13 +2,20 @@ package main
 
 import (
 	"log"
+	"super-simple-queues/config"
 	"super-simple-queues/internal/app"
 )
 
 func main() {
-	newApp := app.NewApp()
+	appConfig, err := config.LoadConfig("config/config.ini")
 
-	if err := newApp.Run(); err != nil {
+	if err != nil {
+		return
+	}
+
+	newApp := app.NewApp(appConfig)
+
+	if err = newApp.Run(); err != nil {
 		log.Fatal(err)
 	}
 }

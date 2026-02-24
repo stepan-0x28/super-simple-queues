@@ -1,6 +1,7 @@
 package app
 
 import (
+	"super-simple-queues/config"
 	"super-simple-queues/internal/queue"
 	"super-simple-queues/internal/server"
 	"super-simple-queues/internal/server/tcp"
@@ -8,18 +9,19 @@ import (
 )
 
 type App struct {
+	config       *config.Config
 	queueManager *queue.Manager
 }
 
-func NewApp() *App {
-	return &App{queue.NewManager()}
+func NewApp(config *config.Config) *App {
+	return &App{config, queue.NewManager()}
 }
 
 func (a *App) Run() error {
 	errChan := make(chan error)
 
-	server.RunGo(tcp.NewTcp(a.queueManager), 8888, errChan)
-	server.RunGo(web.NewWeb(a.queueManager), 8080, errChan)
+	server.RunGo(tcp.NewTcp(a.queueManager), a.config.TCPPort, errChan)
+	server.RunGo(web.NewWeb(a.queueManager), a.config.HTTPPort, errChan)
 
 	return <-errChan
 }
