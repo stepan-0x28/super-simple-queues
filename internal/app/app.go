@@ -4,6 +4,7 @@ import (
 	"super-simple-queues/internal/queue"
 	"super-simple-queues/internal/server"
 	"super-simple-queues/internal/server/tcp"
+	"super-simple-queues/internal/server/web"
 )
 
 type App struct {
@@ -15,27 +16,10 @@ func NewApp() *App {
 }
 
 func (a *App) Run() error {
-	webServer := server.NewWeb(a.queueManager)
-	newTcp := tcp.NewTcp(a.queueManager)
-
 	errChan := make(chan error)
 
-	//TODO remove code duplication
-	go func() {
-		err := newTcp.Run(8888)
-
-		if err != nil {
-			errChan <- err
-		}
-	}()
-
-	go func() {
-		err := webServer.Run(8080)
-
-		if err != nil {
-			errChan <- err
-		}
-	}()
+	server.RunGo(tcp.NewTcp(a.queueManager), 8888, errChan)
+	server.RunGo(web.NewWeb(a.queueManager), 8080, errChan)
 
 	return <-errChan
 }
