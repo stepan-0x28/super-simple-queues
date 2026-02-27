@@ -1,33 +1,54 @@
 package queue
 
+import "sync"
+
 type Manager struct {
+	mutex  sync.Mutex
 	queues map[string]*Queue
 }
 
 func NewManager() *Manager {
-	return &Manager{make(map[string]*Queue)}
+	return &Manager{queues: make(map[string]*Queue)}
 }
 
-func (m *Manager) CreateQueue(key string) {
-	m.queues[key] = NewQueue()
+func (m *Manager) Create(key string) {
+	queue := NewQueue()
+
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if _, ok := m.queues[key]; ok {
+		return
+	}
+
+	m.queues[key] = queue
 }
 
-func (m *Manager) GetQueue(key string) *Queue {
+func (m *Manager) Get(key string) (*Queue, bool) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
 	queue, ok := m.queues[key]
 
-	if !ok {
-		return nil
-	}
-
-	return queue
+	return queue, ok
 }
 
-func (m *Manager) GetEverything() map[string]int {
-	data := make(map[string]int)
+func (m *Manager) MessagesCount() map[string]int {
+	m.mutex.Lock()
 
-	for k, v := range m.queues {
-		data[k] = v.ElementsNumber()
+	queuesSnapshot := make(map[string]*Queue, len(m.queues))
+
+	for key, queue := range m.queues {
+		queuesSnapshot[key] = queue
 	}
 
-	return data
+	m.mutex.Unlock()
+
+	messagesCount := make(map[string]int, len(queuesSnapshot))
+
+	for key, queue := range queuesSnapshot {
+		messagesCount[key] = queue.Count()
+	}
+
+	return messagesCount
 }

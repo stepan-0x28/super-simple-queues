@@ -42,7 +42,7 @@ func (q *Queue) Take() map[string]interface{} {
 	return message
 }
 
-func (q *Queue) GetQuantity() int {
+func (q *Queue) Count() int {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
