@@ -41,7 +41,7 @@ func (c *Connection) Run(queueManager *queue.Manager) error {
 	workQueue, ok := queueManager.Get(queueKey)
 
 	if !ok {
-		return errors.New(fmt.Sprintf("queue with key \"%v\" does not exist", queueKey))
+		return fmt.Errorf("queue with key \"%v\" does not exist", queueKey)
 	}
 
 	c.queue = workQueue
