@@ -7,10 +7,12 @@ import (
 )
 
 func main() {
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+
 	appConfig, err := config.LoadConfig("config/config.ini")
 
 	if err != nil {
-		return
+		log.Fatal(err)
 	}
 
 	newApp := app.NewApp(appConfig)
