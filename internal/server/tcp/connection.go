@@ -84,7 +84,7 @@ func (c *Connection) sendMessages() error {
 	}
 }
 
-func (c *Connection) readMessage() (map[string]interface{}, error) {
+func (c *Connection) readMessage() (map[string]any, error) {
 	_, err := io.ReadFull(c.conn, c.lengthBuffer)
 
 	if err != nil {
@@ -99,7 +99,7 @@ func (c *Connection) readMessage() (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	var message map[string]interface{}
+	var message map[string]any
 
 	if err = json.Unmarshal(jsonBuffer, &message); err != nil {
 		return nil, err
@@ -108,7 +108,7 @@ func (c *Connection) readMessage() (map[string]interface{}, error) {
 	return message, nil
 }
 
-func (c *Connection) writeMessage(message map[string]interface{}) error {
+func (c *Connection) writeMessage(message map[string]any) error {
 	jsonBytes, err := json.Marshal(message)
 
 	if err != nil {
@@ -148,7 +148,7 @@ func (c *Connection) writeFull(data []byte) error {
 	return nil
 }
 
-func getStringValue(message map[string]interface{}, key string) (string, error) {
+func getStringValue(message map[string]any, key string) (string, error) {
 	value, ok := message[key]
 
 	if !ok {

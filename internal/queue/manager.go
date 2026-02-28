@@ -33,7 +33,7 @@ func (m *Manager) Get(key string) (*Queue, bool) {
 	return queue, ok
 }
 
-func (m *Manager) MessagesCount() map[string]int {
+func (m *Manager) MessagesCounts() map[string]int {
 	m.mutex.Lock()
 
 	queuesSnapshot := make(map[string]*Queue, len(m.queues))

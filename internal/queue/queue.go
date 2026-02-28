@@ -7,18 +7,18 @@ import (
 type Queue struct {
 	mutex    sync.Mutex
 	cond     *sync.Cond
-	messages []map[string]interface{}
+	messages []map[string]any
 }
 
 func NewQueue() *Queue {
-	q := &Queue{messages: make([]map[string]interface{}, 0)}
+	q := &Queue{messages: make([]map[string]any, 0)}
 
 	q.cond = sync.NewCond(&q.mutex)
 
 	return q
 }
 
-func (q *Queue) Add(message map[string]interface{}) {
+func (q *Queue) Add(message map[string]any) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
@@ -27,7 +27,7 @@ func (q *Queue) Add(message map[string]interface{}) {
 	q.cond.Signal()
 }
 
-func (q *Queue) Take() map[string]interface{} {
+func (q *Queue) Take() map[string]any {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
