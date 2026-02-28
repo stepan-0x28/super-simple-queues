@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"super-simple-queues/internal/queue"
+	"super-simple-queues/internal/utils"
 )
 
 type Connection struct {
@@ -32,13 +33,13 @@ func (c *Connection) Run(queueManager *queue.Manager) error {
 		return err
 	}
 
-	queueKey, err := getStringValue(initMessage, "queue_key")
+	queueKey, err := utils.GetStringValue(initMessage, "queue_key")
 
 	if err != nil {
 		return err
 	}
 
-	mode, err := getStringValue(initMessage, "mode")
+	mode, err := utils.GetStringValue(initMessage, "mode")
 
 	if err != nil {
 		return err
@@ -146,20 +147,4 @@ func (c *Connection) writeFull(data []byte) error {
 	}
 
 	return nil
-}
-
-func getStringValue(message map[string]any, key string) (string, error) {
-	value, ok := message[key]
-
-	if !ok {
-		return "", fmt.Errorf("the \"%v\" key is missing", key)
-	}
-
-	stringValue, ok := value.(string)
-
-	if !ok {
-		return "", fmt.Errorf("the \"%v\" key is incorrect", key)
-	}
-
-	return stringValue, nil
 }
