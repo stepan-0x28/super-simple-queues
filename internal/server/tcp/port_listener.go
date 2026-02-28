@@ -2,18 +2,17 @@ package tcp
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"super-simple-queues/internal/queue"
 )
 
 type PortListener struct {
-	manager *queue.Manager
+	queueManager *queue.Manager
 }
 
-func NewTcp(manager *queue.Manager) *PortListener {
-	tcp := &PortListener{manager}
-
-	return tcp
+func NewPortListener(queueManager *queue.Manager) *PortListener {
+	return &PortListener{queueManager: queueManager}
 }
 
 func (p *PortListener) Run(port int) error {
@@ -27,11 +26,17 @@ func (p *PortListener) Run(port int) error {
 		conn, err := l.Accept()
 
 		if err != nil {
-			return err
+			log.Println(err)
+
+			continue
 		}
 
-		connection := NewConnection(conn, p.manager)
+		connection := NewConnection(conn)
 
-		go connection.Run()
+		go func(c *Connection) {
+			if err := c.Run(p.queueManager); err != nil {
+				log.Println(err)
+			}
+		}(connection)
 	}
 }
