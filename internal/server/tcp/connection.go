@@ -11,12 +11,18 @@ import (
 )
 
 type Connection struct {
-	conn  net.Conn
-	queue *queue.Queue
+	conn         net.Conn
+	lengthArray  [4]byte
+	lengthBuffer []byte
+	queue        *queue.Queue
 }
 
 func NewConnection(conn net.Conn) *Connection {
-	return &Connection{conn: conn}
+	c := &Connection{conn: conn}
+
+	c.lengthBuffer = c.lengthArray[:]
+
+	return c
 }
 
 func (c *Connection) Run(queueManager *queue.Manager) error {
@@ -79,15 +85,13 @@ func (c *Connection) sendMessages() error {
 }
 
 func (c *Connection) readMessage() (map[string]interface{}, error) {
-	lengthBuffer := make([]byte, 4)
-
-	_, err := io.ReadFull(c.conn, lengthBuffer)
+	_, err := io.ReadFull(c.conn, c.lengthBuffer)
 
 	if err != nil {
 		return nil, err
 	}
 
-	jsonBuffer := make([]byte, binary.BigEndian.Uint32(lengthBuffer))
+	jsonBuffer := make([]byte, binary.BigEndian.Uint32(c.lengthBuffer))
 
 	_, err = io.ReadFull(c.conn, jsonBuffer)
 
@@ -111,11 +115,9 @@ func (c *Connection) writeMessage(message map[string]interface{}) error {
 		return err
 	}
 
-	lengthBuffer := make([]byte, 4)
+	binary.BigEndian.PutUint32(c.lengthBuffer, uint32(len(jsonBytes)))
 
-	binary.BigEndian.PutUint32(lengthBuffer, uint32(len(jsonBytes)))
-
-	err = c.writeFull(lengthBuffer)
+	err = c.writeFull(c.lengthBuffer)
 
 	if err != nil {
 		return err
