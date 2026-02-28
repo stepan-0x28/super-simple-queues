@@ -4,8 +4,8 @@ import (
 	"super-simple-queues/config"
 	"super-simple-queues/internal/queue"
 	"super-simple-queues/internal/server"
+	"super-simple-queues/internal/server/http"
 	"super-simple-queues/internal/server/tcp"
-	"super-simple-queues/internal/server/web"
 )
 
 type App struct {
@@ -20,8 +20,8 @@ func NewApp(config *config.Config) *App {
 func (a *App) Run() error {
 	errChan := make(chan error)
 
-	server.RunGo(tcp.NewTcp(a.queueManager), a.config.TCPPort, errChan)
-	server.RunGo(web.NewWeb(a.queueManager), a.config.HTTPPort, errChan)
+	server.RunGo(tcp.NewPortListener(a.queueManager), a.config.TCPPort, errChan)
+	server.RunGo(http.NewHttp(a.queueManager), a.config.HTTPPort, errChan)
 
 	return <-errChan
 }
