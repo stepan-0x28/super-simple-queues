@@ -74,13 +74,41 @@ func (c *Connection) receiveMessages() error {
 		}
 
 		c.queue.Add(message)
+
+		err = c.writeMessage(map[string]any{"confirmation": "1"})
+
+		if err != nil {
+			return err
+		}
 	}
 }
 
 func (c *Connection) sendMessages() error {
 	for {
-		if err := c.writeMessage(c.queue.Take()); err != nil {
+		queueMessage := c.queue.Take()
+
+		err := c.writeMessage(queueMessage)
+
+		if err != nil {
+			c.queue.PutBack(queueMessage)
+
 			return err
+		}
+
+		tcpMessage, err := c.readMessage()
+
+		if err != nil {
+			c.queue.PutBack(queueMessage)
+
+			return err
+		}
+
+		value, err := utils.GetStringValue(tcpMessage, "confirmation")
+
+		if err != nil || value != "1" {
+			c.queue.PutBack(queueMessage)
+
+			return errors.New("the \"confirmation\" key is missing or invalid")
 		}
 	}
 }
