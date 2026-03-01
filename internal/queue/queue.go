@@ -42,6 +42,17 @@ func (q *Queue) Take() map[string]any {
 	return message
 }
 
+func (q *Queue) PutBack(message map[string]any) {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+
+	q.messages = append(q.messages, nil)
+
+	copy(q.messages[1:], q.messages[:len(q.messages)-1])
+
+	q.messages[0] = message
+}
+
 func (q *Queue) Count() int {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
