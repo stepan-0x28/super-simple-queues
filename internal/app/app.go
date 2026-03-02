@@ -9,11 +9,11 @@ import (
 )
 
 type App struct {
-	config       *config.Config
+	config       config.Config
 	queueManager *queue.Manager
 }
 
-func NewApp(config *config.Config) *App {
+func NewApp(config config.Config) *App {
 	return &App{config, queue.NewManager()}
 }
 
