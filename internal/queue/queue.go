@@ -5,24 +5,24 @@ import (
 )
 
 type Queue struct {
-	mutex    sync.Mutex
-	cond     *sync.Cond
-	messages []map[string]any
+	mutex sync.Mutex
+	cond  *sync.Cond
+	items []map[string]any
 }
 
 func NewQueue() *Queue {
-	q := &Queue{messages: make([]map[string]any, 0)}
+	q := &Queue{items: make([]map[string]any, 0)}
 
 	q.cond = sync.NewCond(&q.mutex)
 
 	return q
 }
 
-func (q *Queue) Add(message map[string]any) {
+func (q *Queue) Add(item map[string]any) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
-	q.messages = append(q.messages, message)
+	q.items = append(q.items, item)
 
 	q.cond.Signal()
 }
@@ -31,31 +31,31 @@ func (q *Queue) Take() map[string]any {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
-	for len(q.messages) == 0 {
+	for len(q.items) == 0 {
 		q.cond.Wait()
 	}
 
-	message := q.messages[0]
+	item := q.items[0]
 
-	q.messages = q.messages[1:]
+	q.items = q.items[1:]
 
-	return message
+	return item
 }
 
-func (q *Queue) PutBack(message map[string]any) {
+func (q *Queue) PutBack(item map[string]any) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
-	q.messages = append(q.messages, nil)
+	q.items = append(q.items, nil)
 
-	copy(q.messages[1:], q.messages[:len(q.messages)-1])
+	copy(q.items[1:], q.items[:len(q.items)-1])
 
-	q.messages[0] = message
+	q.items[0] = item
 }
 
 func (q *Queue) Count() int {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
-	return len(q.messages)
+	return len(q.items)
 }

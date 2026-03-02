@@ -33,7 +33,7 @@ func (m *Manager) Get(key string) (*Queue, bool) {
 	return queue, ok
 }
 
-func (m *Manager) MessagesCounts() map[string]int {
+func (m *Manager) ItemsCounts() map[string]int {
 	m.mutex.Lock()
 
 	queuesSnapshot := make(map[string]*Queue, len(m.queues))
@@ -44,11 +44,11 @@ func (m *Manager) MessagesCounts() map[string]int {
 
 	m.mutex.Unlock()
 
-	messagesCount := make(map[string]int, len(queuesSnapshot))
+	itemsCount := make(map[string]int, len(queuesSnapshot))
 
 	for key, queue := range queuesSnapshot {
-		messagesCount[key] = queue.Count()
+		itemsCount[key] = queue.Count()
 	}
 
-	return messagesCount
+	return itemsCount
 }

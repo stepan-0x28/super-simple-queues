@@ -27,19 +27,19 @@ func NewConnection(conn net.Conn) *Connection {
 }
 
 func (c *Connection) Run(queueManager *queue.Manager) error {
-	initMessage, err := c.readMessage()
+	message, err := c.readMessage()
 
 	if err != nil {
 		return err
 	}
 
-	queueKey, err := utils.GetStringValue(initMessage, "queue_key")
+	queueKey, err := utils.GetStringValue(message, "queue_key")
 
 	if err != nil {
 		return err
 	}
 
-	mode, err := utils.GetStringValue(initMessage, "mode")
+	mode, err := utils.GetStringValue(message, "mode")
 
 	if err != nil {
 		return err
@@ -85,28 +85,28 @@ func (c *Connection) receiveMessages() error {
 
 func (c *Connection) sendMessages() error {
 	for {
-		queueMessage := c.queue.Take()
+		queueItem := c.queue.Take()
 
-		err := c.writeMessage(queueMessage)
+		err := c.writeMessage(queueItem)
 
 		if err != nil {
-			c.queue.PutBack(queueMessage)
+			c.queue.PutBack(queueItem)
 
 			return err
 		}
 
-		tcpMessage, err := c.readMessage()
+		message, err := c.readMessage()
 
 		if err != nil {
-			c.queue.PutBack(queueMessage)
+			c.queue.PutBack(queueItem)
 
 			return err
 		}
 
-		value, err := utils.GetStringValue(tcpMessage, "confirmation")
+		value, err := utils.GetStringValue(message, "confirmation")
 
 		if err != nil || value != "1" {
-			c.queue.PutBack(queueMessage)
+			c.queue.PutBack(queueItem)
 
 			return errors.New("the \"confirmation\" key is missing or invalid")
 		}

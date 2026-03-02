@@ -23,7 +23,7 @@ func NewHttp(queueManager *queue.Manager) *Http {
 	httpServer := &Http{queueManager, http.NewServeMux()}
 
 	routes := []route{
-		{"/messages_counts", "GET", httpServer.messagesCountsHandler},
+		{"/items_counts", "GET", httpServer.itemsCountsHandler},
 		{"/create", "POST", httpServer.createHandler},
 	}
 
@@ -38,13 +38,13 @@ func (h *Http) Run(port int) error {
 	return http.ListenAndServe(fmt.Sprintf(":%v", port), h.serveMux)
 }
 
-func (h *Http) messagesCountsHandler(w http.ResponseWriter, _ *http.Request) {
-	messagesCounts := h.queueManager.MessagesCounts()
+func (h *Http) itemsCountsHandler(w http.ResponseWriter, _ *http.Request) {
+	itemsCounts := h.queueManager.ItemsCounts()
 
 	outputData := map[string]any{
-		"status":          "done",
-		"messages_counts": messagesCounts,
-		"queues_count":    len(messagesCounts),
+		"status":       "done",
+		"items_counts": itemsCounts,
+		"queues_count": len(itemsCounts),
 	}
 
 	writeJson(w, outputData, 200)
