@@ -20,7 +20,7 @@ func NewApp(config config.Config) *App {
 func (a *App) Run() error {
 	errChan := make(chan error)
 
-	server.RunGo(tcp.NewPortListener(a.queueManager), a.config.TCPPort, errChan)
+	server.RunGo(tcp.NewListener(a.queueManager), a.config.TCPPort, errChan)
 	server.RunGo(http.NewHttp(a.queueManager), a.config.HTTPPort, errChan)
 
 	return <-errChan

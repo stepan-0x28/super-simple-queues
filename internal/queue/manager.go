@@ -12,8 +12,6 @@ func NewManager() *Manager {
 }
 
 func (m *Manager) Create(key string) {
-	queue := NewQueue()
-
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -21,7 +19,7 @@ func (m *Manager) Create(key string) {
 		return
 	}
 
-	m.queues[key] = queue
+	m.queues[key] = NewQueue()
 }
 
 func (m *Manager) Get(key string) (*Queue, bool) {

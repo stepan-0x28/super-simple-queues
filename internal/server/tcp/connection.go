@@ -1,81 +1,82 @@
 package tcp
 
 import (
-	"encoding/binary"
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"super-simple-queues/internal/queue"
-	"super-simple-queues/internal/utils"
+	"super-simple-queues/internal/server/tcp/message"
 )
 
-type Connection struct {
-	conn         net.Conn
-	lengthArray  [4]byte
-	lengthBuffer []byte
-	queue        *queue.Queue
+var confirmMessage = message.NewConfirm()
+
+type connection struct {
+	codec *codec
 }
 
-func NewConnection(conn net.Conn) *Connection {
-	c := &Connection{conn: conn}
-
-	c.lengthBuffer = c.lengthArray[:]
-
-	return c
+func newConnection(conn net.Conn) *connection {
+	return &connection{
+		codec: newCodec(bufio.NewReaderSize(conn, 1024), bufio.NewWriterSize(conn, 1024)),
+	}
 }
 
-func (c *Connection) Run(queueManager *queue.Manager) error {
-	message, err := c.readMessage()
+func (c *connection) run(queueManager *queue.Manager) error {
+	msg, err := c.codec.readMessage()
 
 	if err != nil {
 		return err
 	}
 
-	queueKey, err := utils.GetStringValue(message, "queue_key")
-
-	if err != nil {
-		return err
-	}
-
-	mode, err := utils.GetStringValue(message, "mode")
-
-	if err != nil {
-		return err
-	}
-
-	workQueue, ok := queueManager.Get(queueKey)
+	initMessage, ok := msg.(*message.Init)
 
 	if !ok {
-		return fmt.Errorf("queue with key \"%v\" does not exist", queueKey)
+		return errors.New("expected message type \"Init\"")
 	}
 
-	c.queue = workQueue
+	q, ok := queueManager.Get(initMessage.QueueKey)
 
-	switch mode {
-	case "sending":
-		err = c.receiveMessages()
-	case "receiving":
-		err = c.sendMessages()
-	default:
-		err = errors.New("unknown mode")
+	if !ok {
+		return fmt.Errorf("queue with key \"%v\" does not exist", initMessage.QueueKey)
+	}
+
+	err = c.codec.writeMessage(confirmMessage)
+
+	if err != nil {
+		return err
+	}
+
+	if initMessage.Mode {
+		err = c.readMessages(q)
+	} else {
+		err = c.writeMessages(q)
 	}
 
 	return err
 }
 
-func (c *Connection) receiveMessages() error {
+func (c *connection) readMessages(q *queue.Queue) error {
 	for {
-		message, err := c.readMessage()
+		msg, err := c.codec.readMessage()
 
 		if err != nil {
 			return err
 		}
 
-		c.queue.Add(message)
+		payloadMessage, ok := msg.(*message.Payload)
 
-		err = c.writeMessage(map[string]any{"confirmation": "1"})
+		if !ok {
+			return errors.New("expected message type \"Payload\"")
+		}
+
+		if !json.Valid(payloadMessage.Data) {
+			return errors.New("the message data is invalid json")
+		}
+
+		q.Add(payloadMessage.Data)
+
+		err = c.codec.writeMessage(confirmMessage)
 
 		if err != nil {
 			return err
@@ -83,96 +84,26 @@ func (c *Connection) receiveMessages() error {
 	}
 }
 
-func (c *Connection) sendMessages() error {
+func (c *connection) writeMessages(q *queue.Queue) error {
 	for {
-		queueItem := c.queue.Take()
+		item := q.Take()
 
-		err := c.writeMessage(queueItem)
+		err := c.codec.writeMessage(message.NewPayloadWithData(item))
 
 		if err != nil {
-			c.queue.PutBack(queueItem)
+			q.PutBack(item)
 
 			return err
 		}
 
-		message, err := c.readMessage()
+		msg, err := c.codec.readMessage()
 
-		if err != nil {
-			c.queue.PutBack(queueItem)
+		_, ok := msg.(*message.Confirm)
 
-			return err
-		}
+		if !ok {
+			q.PutBack(item)
 
-		value, err := utils.GetStringValue(message, "confirmation")
-
-		if err != nil || value != "1" {
-			c.queue.PutBack(queueItem)
-
-			return errors.New("the \"confirmation\" key is missing or invalid")
+			return errors.New("expected message type \"Confirm\"")
 		}
 	}
-}
-
-func (c *Connection) readMessage() (map[string]any, error) {
-	_, err := io.ReadFull(c.conn, c.lengthBuffer)
-
-	if err != nil {
-		return nil, err
-	}
-
-	jsonBuffer := make([]byte, binary.BigEndian.Uint32(c.lengthBuffer))
-
-	_, err = io.ReadFull(c.conn, jsonBuffer)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var message map[string]any
-
-	if err = json.Unmarshal(jsonBuffer, &message); err != nil {
-		return nil, err
-	}
-
-	return message, nil
-}
-
-func (c *Connection) writeMessage(message map[string]any) error {
-	jsonBytes, err := json.Marshal(message)
-
-	if err != nil {
-		return err
-	}
-
-	binary.BigEndian.PutUint32(c.lengthBuffer, uint32(len(jsonBytes)))
-
-	err = c.writeFull(c.lengthBuffer)
-
-	if err != nil {
-		return err
-	}
-
-	err = c.writeFull(jsonBytes)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *Connection) writeFull(data []byte) error {
-	total := 0
-
-	for total < len(data) {
-		n, err := c.conn.Write(data[total:])
-
-		if err != nil {
-			return err
-		}
-
-		total += n
-	}
-
-	return nil
 }
