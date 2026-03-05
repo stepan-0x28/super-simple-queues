@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"super-simple-queues/internal/queue"
-	"super-simple-queues/internal/utils"
 )
 
 type Http struct {
@@ -59,7 +58,7 @@ func (h *Http) createHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key, err := utils.GetStringValue(data, "key")
+	key, err := getStringValue(data, "key")
 
 	if err != nil {
 		writeJson(w, map[string]any{"status": err.Error()}, 400)
@@ -102,4 +101,20 @@ func readJson(r *http.Request) (map[string]any, error) {
 	}
 
 	return data, nil
+}
+
+func getStringValue(data map[string]any, key string) (string, error) {
+	value, ok := data[key]
+
+	if !ok {
+		return "", fmt.Errorf("the key \"%v\" is missing", key)
+	}
+
+	stringValue, ok := value.(string)
+
+	if !ok || stringValue == "" {
+		return "", fmt.Errorf("the value of the key \"%v\" is incorrect", key)
+	}
+
+	return stringValue, nil
 }
