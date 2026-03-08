@@ -2,6 +2,7 @@ services:
   super-simple-queues:
     build: .
     image: super-simple-queues
+    container_name: super-simple-queues
     environment:
       - TCP_PORT=${TCP_PORT}
       - HTTP_PORT=${HTTP_PORT}
