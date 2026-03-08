@@ -2,22 +2,29 @@ package main
 
 import (
 	"log"
-	"super-simple-queues/config"
+	"os"
+	"strconv"
 	"super-simple-queues/internal/app"
 )
 
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 
-	appConfig, err := config.LoadConfig("config/config.ini")
+	tcpPort, err := strconv.Atoi(os.Getenv("TCP_PORT"))
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	newApp := app.NewApp(appConfig)
+	httpPort, err := strconv.Atoi(os.Getenv("HTTP_PORT"))
 
-	if err = newApp.Run(); err != nil {
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	a := app.New()
+
+	if err = a.Run(tcpPort, httpPort); err != nil {
 		log.Fatal(err)
 	}
 }

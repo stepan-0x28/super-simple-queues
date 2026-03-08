@@ -38,15 +38,11 @@ func (c *codec) readMessage() (message.Message, error) {
 
 	err = msg.ReadBody(c.bufferedReader)
 
-	if err != nil {
-		return nil, err
-	}
-
 	return msg, err
 }
 
 func (c *codec) writeMessage(msg message.Message) error {
-	err := c.bufferedWriter.WriteByte(byte(msg.GetType()))
+	err := c.bufferedWriter.WriteByte(byte(msg.Type()))
 
 	if err != nil {
 		return err
@@ -58,11 +54,5 @@ func (c *codec) writeMessage(msg message.Message) error {
 		return err
 	}
 
-	err = c.bufferedWriter.Flush()
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return c.bufferedWriter.Flush()
 }

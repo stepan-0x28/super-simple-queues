@@ -2,23 +2,22 @@ package queue
 
 import "sync"
 
-type Item []byte
-
 type Queue struct {
 	mutex sync.Mutex
 	cond  *sync.Cond
-	items []Item
+	// TODO the slices need to be replaced with a different structure
+	items [][]byte
 }
 
 func NewQueue() *Queue {
-	q := &Queue{items: make([]Item, 0)}
+	q := &Queue{items: make([][]byte, 0, 1024)}
 
 	q.cond = sync.NewCond(&q.mutex)
 
 	return q
 }
 
-func (q *Queue) Add(item Item) {
+func (q *Queue) Add(item []byte) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
@@ -27,7 +26,7 @@ func (q *Queue) Add(item Item) {
 	q.cond.Signal()
 }
 
-func (q *Queue) Take() Item {
+func (q *Queue) Take() []byte {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
@@ -44,7 +43,7 @@ func (q *Queue) Take() Item {
 	return item
 }
 
-func (q *Queue) PutBack(item Item) {
+func (q *Queue) PutBack(item []byte) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 

@@ -2,16 +2,20 @@ package message
 
 import "io"
 
+type OperatingMode bool
+
+const SendingOperatingMode OperatingMode = true
+
 type Init struct {
-	Mode     bool
-	QueueKey string
+	OperatingMode OperatingMode
+	QueueKey      string
 }
 
 func NewInit() Message {
 	return &Init{}
 }
 
-func (i *Init) GetType() Type {
+func (i *Init) Type() Type {
 	return InitType
 }
 
@@ -26,7 +30,7 @@ func (i *Init) ReadBody(reader io.Reader) error {
 		return err
 	}
 
-	i.Mode = oneByteBuffer[0] != 0
+	i.OperatingMode = oneByteBuffer[0] != 0
 
 	_, err = io.ReadFull(reader, oneByteBuffer)
 

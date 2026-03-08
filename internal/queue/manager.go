@@ -11,15 +11,19 @@ func NewManager() *Manager {
 	return &Manager{queues: make(map[string]*Queue)}
 }
 
-func (m *Manager) Create(key string) {
+func (m *Manager) Create(key string) bool {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	if _, ok := m.queues[key]; ok {
-		return
+	_, ok := m.queues[key]
+
+	if ok {
+		return false
 	}
 
 	m.queues[key] = NewQueue()
+
+	return true
 }
 
 func (m *Manager) Get(key string) (*Queue, bool) {

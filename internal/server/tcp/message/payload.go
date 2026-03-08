@@ -17,7 +17,7 @@ func NewPayloadWithData(data []byte) Message {
 	return &Payload{data}
 }
 
-func (p *Payload) GetType() Type {
+func (p *Payload) Type() Type {
 	return PayloadType
 }
 
@@ -36,11 +36,7 @@ func (p *Payload) ReadBody(reader io.Reader) error {
 
 	_, err = io.ReadFull(reader, p.Data)
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (p *Payload) WriteBody(writer io.Writer) error {
@@ -58,9 +54,5 @@ func (p *Payload) WriteBody(writer io.Writer) error {
 
 	_, err = writer.Write(p.Data)
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

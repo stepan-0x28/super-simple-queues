@@ -8,7 +8,7 @@ func NewConfirm() Message {
 	return &Confirm{}
 }
 
-func (c *Confirm) GetType() Type {
+func (c *Confirm) Type() Type {
 	return ConfirmType
 }
 

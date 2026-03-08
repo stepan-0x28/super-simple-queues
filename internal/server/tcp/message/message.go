@@ -11,7 +11,7 @@ const (
 )
 
 type Message interface {
-	GetType() Type
+	Type() Type
 	ReadBody(io.Reader) error
 	WriteBody(io.Writer) error
 }

@@ -2,7 +2,6 @@ package tcp
 
 import (
 	"bufio"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -18,42 +17,45 @@ type connection struct {
 
 func newConnection(conn net.Conn) *connection {
 	return &connection{
-		codec: newCodec(bufio.NewReaderSize(conn, 1024), bufio.NewWriterSize(conn, 1024)),
+		codec: newCodec(bufio.NewReaderSize(conn, 256), bufio.NewWriterSize(conn, 256)),
 	}
 }
 
-func (c *connection) run(queueManager *queue.Manager) error {
+func (c *connection) init(queueManager *queue.Manager) (message.OperatingMode, *queue.Queue, error) {
 	msg, err := c.codec.readMessage()
 
 	if err != nil {
-		return err
+		return message.SendingOperatingMode, nil, err
 	}
 
 	initMessage, ok := msg.(*message.Init)
 
 	if !ok {
-		return errors.New("expected message type \"Init\"")
+		return message.SendingOperatingMode, nil, errors.New("expected message type \"Init\"")
 	}
 
 	q, ok := queueManager.Get(initMessage.QueueKey)
 
 	if !ok {
-		return fmt.Errorf("queue with key \"%v\" does not exist", initMessage.QueueKey)
+		return message.SendingOperatingMode, nil,
+			fmt.Errorf("queue with key \"%v\" does not exist", initMessage.QueueKey)
 	}
 
 	err = c.codec.writeMessage(confirmMessage)
 
 	if err != nil {
-		return err
+		return message.SendingOperatingMode, nil, err
 	}
 
-	if initMessage.Mode {
-		err = c.readMessages(q)
-	} else {
-		err = c.writeMessages(q)
+	return initMessage.OperatingMode, q, nil
+}
+
+func (c *connection) run(operatingMode message.OperatingMode, q *queue.Queue) error {
+	if operatingMode == message.SendingOperatingMode {
+		return c.readMessages(q)
 	}
 
-	return err
+	return c.writeMessages(q)
 }
 
 func (c *connection) readMessages(q *queue.Queue) error {
@@ -68,10 +70,6 @@ func (c *connection) readMessages(q *queue.Queue) error {
 
 		if !ok {
 			return errors.New("expected message type \"Payload\"")
-		}
-
-		if !json.Valid(payloadMessage.Data) {
-			return errors.New("the message data is invalid json")
 		}
 
 		q.Add(payloadMessage.Data)
@@ -97,6 +95,12 @@ func (c *connection) writeMessages(q *queue.Queue) error {
 		}
 
 		msg, err := c.codec.readMessage()
+
+		if err != nil {
+			q.PutBack(item)
+
+			return err
+		}
 
 		_, ok := msg.(*message.Confirm)
 
