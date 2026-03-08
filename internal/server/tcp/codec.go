@@ -36,21 +36,15 @@ func (c *codec) readMessage() (message.Message, error) {
 
 	msg := constructor()
 
-	err = msg.ReadBody(c.bufferedReader)
-
-	return msg, err
+	return msg, msg.ReadBody(c.bufferedReader)
 }
 
 func (c *codec) writeMessage(msg message.Message) error {
-	err := c.bufferedWriter.WriteByte(byte(msg.Type()))
-
-	if err != nil {
+	if err := c.bufferedWriter.WriteByte(byte(msg.Type())); err != nil {
 		return err
 	}
 
-	err = msg.WriteBody(c.bufferedWriter)
-
-	if err != nil {
+	if err := msg.WriteBody(c.bufferedWriter); err != nil {
 		return err
 	}
 

@@ -101,9 +101,7 @@ func writeJson(w http.ResponseWriter, data map[string]any, code int) {
 func readJson(r *http.Request) (map[string]any, error) {
 	var data map[string]any
 
-	err := json.NewDecoder(r.Body).Decode(&data)
-
-	return data, err
+	return data, json.NewDecoder(r.Body).Decode(&data)
 }
 
 func getStringValue(data map[string]any, key string) (string, error) {

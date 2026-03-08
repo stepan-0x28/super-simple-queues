@@ -41,9 +41,7 @@ func (c *connection) init(queueManager *queue.Manager) (message.OperatingMode, *
 			fmt.Errorf("queue with key \"%v\" does not exist", initMessage.QueueKey)
 	}
 
-	err = c.codec.writeMessage(confirmMessage)
-
-	if err != nil {
+	if err = c.codec.writeMessage(confirmMessage); err != nil {
 		return message.SendingOperatingMode, nil, err
 	}
 
@@ -74,9 +72,7 @@ func (c *connection) readMessages(q *queue.Queue) error {
 
 		q.Add(payloadMessage.Data)
 
-		err = c.codec.writeMessage(confirmMessage)
-
-		if err != nil {
+		if err = c.codec.writeMessage(confirmMessage); err != nil {
 			return err
 		}
 	}
@@ -86,9 +82,7 @@ func (c *connection) writeMessages(q *queue.Queue) error {
 	for {
 		item := q.Take()
 
-		err := c.codec.writeMessage(message.NewPayloadWithData(item))
-
-		if err != nil {
+		if err := c.codec.writeMessage(message.NewPayloadWithData(item)); err != nil {
 			q.PutBack(item)
 
 			return err
