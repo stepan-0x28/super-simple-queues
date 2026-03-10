@@ -34,34 +34,20 @@ func TestQueue_Concurrency(t *testing.T) {
 
 	q := NewQueue()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		interactWithQueue(t, receiverCount, receivedItemsCount, func() { q.Take() })
-	}()
+	wg.Add(senderCount + receiverCount + receiverCount2 + returnerCount)
+
+	interactWithQueue(&wg, receiverCount, receivedItemsCount, func() { q.Take() })
 
 	// let's wait to increase the likelihood that q.Take() will call q.cond.Wait()
 	time.Sleep(time.Second)
 
 	addedItem := []byte("test")
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		interactWithQueue(t, senderCount, sentItemsCount, func() { q.Add(addedItem) })
-	}()
+	go interactWithQueue(&wg, senderCount, sentItemsCount, func() { q.Add(addedItem) })
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		interactWithQueue(t, receiverCount2, receivedItemsCount2, func() { q.Take() })
-	}()
+	go interactWithQueue(&wg, receiverCount2, receivedItemsCount2, func() { q.Take() })
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		interactWithQueue(t, returnerCount, returnedItemsCount, func() { q.PutBack(addedItem) })
-	}()
+	go interactWithQueue(&wg, returnerCount, returnedItemsCount, func() { q.PutBack(addedItem) })
 
 	wg.Wait()
 
@@ -113,30 +99,40 @@ func TestQueue_Take(t *testing.T) {
 
 	takenItemChan := make(chan []byte)
 
-	go func() { takenItemChan <- q.Take() }()
+	go func() {
+		for {
+			takenItemChan <- q.Take()
+		}
+	}()
 
 	select {
 	case <-takenItemChan:
-		t.Fatal("it was expected that receiving the item would block on q.cond.Wait()")
+		t.Fatal("the item take function was expected to block on q.cond.Wait()")
 	case <-time.After(time.Second):
 	}
 
-	q.Add([]byte("test"))
+	addedItem := []byte("test")
 
-	select {
-	case <-takenItemChan:
-	case <-time.After(time.Second):
-		t.Fatal("the item was expected to be received immediately")
+	waitData := func() {
+		t.Helper()
+
+		select {
+		case <-takenItemChan:
+		case <-time.After(time.Second):
+			t.Fatal("the item was expected to be received immediately")
+		}
 	}
+
+	q.Add(addedItem)
+
+	waitData()
+
+	q.PutBack(addedItem)
+
+	waitData()
 }
 
-func interactWithQueue(t *testing.T, goroutineCount int, itemCount int, fn func()) {
-	t.Helper()
-
-	var wg sync.WaitGroup
-
-	wg.Add(goroutineCount)
-
+func interactWithQueue(wg *sync.WaitGroup, goroutineCount int, itemCount int, fn func()) {
 	for i := 0; i < goroutineCount; i++ {
 		go func() {
 			defer wg.Done()
@@ -146,6 +142,4 @@ func interactWithQueue(t *testing.T, goroutineCount int, itemCount int, fn func(
 			}
 		}()
 	}
-
-	wg.Wait()
 }
