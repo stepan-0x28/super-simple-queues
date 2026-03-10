@@ -52,6 +52,8 @@ func (q *Queue) PutBack(item []byte) {
 	copy(q.items[1:], q.items[:len(q.items)-1])
 
 	q.items[0] = item
+
+	q.cond.Signal()
 }
 
 func (q *Queue) Count() int {
