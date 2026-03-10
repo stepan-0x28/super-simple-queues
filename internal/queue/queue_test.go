@@ -108,6 +108,28 @@ func TestQueue_Sequence(t *testing.T) {
 	}
 }
 
+func TestQueue_Take(t *testing.T) {
+	q := NewQueue()
+
+	takenItemChan := make(chan []byte)
+
+	go func() { takenItemChan <- q.Take() }()
+
+	select {
+	case <-takenItemChan:
+		t.Fatal("it was expected that receiving the item would block on q.cond.Wait()")
+	case <-time.After(time.Second):
+	}
+
+	q.Add([]byte("test"))
+
+	select {
+	case <-takenItemChan:
+	case <-time.After(time.Second):
+		t.Fatal("the item was expected to be received immediately")
+	}
+}
+
 func interactWithQueue(t *testing.T, goroutineCount int, itemCount int, fn func()) {
 	t.Helper()
 
