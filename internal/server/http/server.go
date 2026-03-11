@@ -18,15 +18,15 @@ func NewServer(queueManager *queue.Manager) *Server {
 
 	routes := []struct {
 		pattern string
-		method  string
 		handler http.HandlerFunc
 	}{
-		{"/items_counts", "GET", httpServer.itemsCountsHandler},
-		{"/create", "POST", httpServer.createHandler},
+		{"POST /queues/{key}", httpServer.createHandler},
+		{"GET /queues/{key}", httpServer.getHandler},
+		{"GET /queues", httpServer.listHandler},
 	}
 
 	for _, r := range routes {
-		httpServer.serveMux.HandleFunc(r.pattern, methodMiddleware(r.method, r.handler))
+		httpServer.serveMux.HandleFunc(r.pattern, r.handler)
 	}
 
 	return httpServer
@@ -36,56 +36,42 @@ func (s *Server) Run(port int) error {
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), s.serveMux)
 }
 
-func (s *Server) itemsCountsHandler(w http.ResponseWriter, _ *http.Request) {
-	itemsCounts := s.queueManager.ItemsCounts()
-
-	outputData := map[string]any{
-		"status":       "done",
-		"items_counts": itemsCounts,
-		"queues_count": len(itemsCounts),
-	}
-
-	writeJson(w, outputData, http.StatusOK)
-}
-
 func (s *Server) createHandler(w http.ResponseWriter, r *http.Request) {
-	data, err := readJson(r)
+	isNew := s.queueManager.Create(r.PathValue("key"))
 
-	if err != nil {
-		writeJson(w, map[string]any{"status": "incorrect json"}, http.StatusBadRequest)
-
-		return
-	}
-
-	key, err := getStringValue(data, "key")
-
-	if err != nil {
-		writeJson(w, map[string]any{"status": err.Error()}, http.StatusBadRequest)
+	if !isNew {
+		writeJson(w, map[string]any{"message": "a queue with this key has already been created"}, http.StatusOK)
 
 		return
 	}
 
-	isNew := s.queueManager.Create(key)
-
-	if isNew {
-		writeJson(w, map[string]any{"status": "the queue has been created"}, http.StatusCreated)
-
-		return
-	}
-
-	writeJson(w, map[string]any{"status": "a queue with this key has already been created"}, http.StatusOK)
+	writeJson(w, map[string]any{"message": "the queue has been created"}, http.StatusCreated)
 }
 
-func methodMiddleware(allowedMethod string, handler http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != allowedMethod {
-			writeJson(w, map[string]any{"status": "method not allowed"}, http.StatusMethodNotAllowed)
+func (s *Server) getHandler(w http.ResponseWriter, r *http.Request) {
+	q, ok := s.queueManager.Get(r.PathValue("key"))
 
-			return
-		}
+	if !ok {
+		writeJson(w, map[string]any{"message": "a queue with this key does not exist"}, http.StatusNotFound)
 
-		handler(w, r)
+		return
 	}
+
+	writeJson(w, map[string]any{"items_count": q.Count()}, http.StatusOK)
+}
+
+func (s *Server) listHandler(w http.ResponseWriter, _ *http.Request) {
+	queues := s.queueManager.GetAll()
+
+	queuesCount := len(queues)
+
+	queuesInfo := make(map[string]any, queuesCount)
+
+	for key, q := range queues {
+		queuesInfo[key] = map[string]any{"items_count": q.Count()}
+	}
+
+	writeJson(w, map[string]any{"queues_info": queuesInfo, "queues_count": queuesCount}, http.StatusOK)
 }
 
 func writeJson(w http.ResponseWriter, data map[string]any, code int) {
@@ -96,26 +82,4 @@ func writeJson(w http.ResponseWriter, data map[string]any, code int) {
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		log.Println(err)
 	}
-}
-
-func readJson(r *http.Request) (map[string]any, error) {
-	var data map[string]any
-
-	return data, json.NewDecoder(r.Body).Decode(&data)
-}
-
-func getStringValue(data map[string]any, key string) (string, error) {
-	value, ok := data[key]
-
-	if !ok {
-		return "", fmt.Errorf("the key \"%v\" is missing", key)
-	}
-
-	stringValue, ok := value.(string)
-
-	if !ok || stringValue == "" {
-		return "", fmt.Errorf("the value of the key \"%v\" is incorrect", key)
-	}
-
-	return stringValue, nil
 }
