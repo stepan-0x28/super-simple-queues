@@ -37,9 +37,9 @@ func (s *Server) Run(port int) error {
 }
 
 func (s *Server) createHandler(w http.ResponseWriter, r *http.Request) {
-	isNew := s.queueManager.Create(r.PathValue("key"))
+	createdNow := s.queueManager.Create(r.PathValue("key"))
 
-	if !isNew {
+	if !createdNow {
 		writeJson(w, map[string]any{"message": "a queue with this key has already been created"}, http.StatusOK)
 
 		return
