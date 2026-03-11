@@ -21,7 +21,7 @@ func (m *Manager) Create(key string) bool {
 		return false
 	}
 
-	m.queues[key] = NewQueue()
+	m.queues[key] = newQueue()
 
 	return true
 }

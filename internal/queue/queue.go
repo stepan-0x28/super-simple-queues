@@ -9,7 +9,7 @@ type Queue struct {
 	items [][]byte
 }
 
-func NewQueue() *Queue {
+func newQueue() *Queue {
 	q := &Queue{items: make([][]byte, 0, 1024)}
 
 	q.cond = sync.NewCond(&q.mutex)

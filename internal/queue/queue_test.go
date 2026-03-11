@@ -8,7 +8,7 @@ import (
 )
 
 func TestNewQueue(t *testing.T) {
-	q := NewQueue()
+	q := newQueue()
 
 	if q == nil {
 		t.Fatal("non-nil queue expected")
@@ -32,7 +32,7 @@ func TestQueue_Concurrency(t *testing.T) {
 		returnerCount, returnedItemsCount   = 4, 8
 	)
 
-	q := NewQueue()
+	q := newQueue()
 
 	wg.Add(senderCount + receiverCount + receiverCount2 + returnerCount)
 
@@ -64,7 +64,7 @@ func TestQueue_Concurrency(t *testing.T) {
 }
 
 func TestQueue_Sequence(t *testing.T) {
-	q := NewQueue()
+	q := newQueue()
 
 	for i := 0; i < 10; i++ {
 		q.Add([]byte(strconv.Itoa(i)))
@@ -95,7 +95,7 @@ func TestQueue_Sequence(t *testing.T) {
 }
 
 func TestQueue_Take(t *testing.T) {
-	q := NewQueue()
+	q := newQueue()
 
 	takenItemChan := make(chan []byte)
 
