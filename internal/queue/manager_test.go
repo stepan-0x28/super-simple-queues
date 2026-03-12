@@ -21,7 +21,7 @@ func TestNewManager(t *testing.T) {
 func TestManager_Delete(t *testing.T) {
 	m := NewManager()
 
-	queueKey := "test"
+	const queueKey = "test"
 
 	deleted := m.Delete(queueKey)
 
@@ -33,9 +33,7 @@ func TestManager_Delete(t *testing.T) {
 
 	q, _ := m.Get(queueKey)
 
-	const interactingCount = 3
-
-	errChan := make(chan error, interactingCount)
+	errChan := make(chan error)
 
 	addedItem := []byte("test")
 
@@ -58,6 +56,8 @@ func TestManager_Delete(t *testing.T) {
 	if ok {
 		t.Fatal("it is expected that the queue will not exist")
 	}
+
+	const interactingCount = 3
 
 	for i := 0; i < interactingCount; i++ {
 		select {

@@ -61,7 +61,7 @@ func (s *Server) getHandler(w http.ResponseWriter, r *http.Request) {
 	itemsCount, err := q.Count()
 
 	if err != nil {
-		writeJson(w, map[string]any{"message": "the queue has already been deleted"}, http.StatusNotFound)
+		writeJson(w, map[string]any{"message": "the queue was deleted"}, http.StatusNotFound)
 
 		return
 	}
