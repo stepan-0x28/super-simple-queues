@@ -14,7 +14,7 @@ func TestNewQueue(t *testing.T) {
 		t.Fatal("non-nil queue expected")
 	}
 
-	actualCount := q.Count()
+	actualCount, _ := q.Count()
 
 	if actualCount != 0 {
 		t.Fatalf("an empty queue is expected, there are %d items in the queue", actualCount)
@@ -36,18 +36,18 @@ func TestQueue_Concurrency(t *testing.T) {
 
 	wg.Add(senderCount + receiverCount + receiverCount2 + returnerCount)
 
-	interactWithQueue(&wg, receiverCount, receivedItemsCount, func() { q.Take() })
+	concurrentQueueInteraction(&wg, receiverCount, receivedItemsCount, func() { _, _ = q.Take() })
 
 	// let's wait to increase the likelihood that q.Take() will call q.cond.Wait()
 	time.Sleep(time.Second)
 
 	addedItem := []byte("test")
 
-	go interactWithQueue(&wg, senderCount, sentItemsCount, func() { q.Add(addedItem) })
+	go concurrentQueueInteraction(&wg, senderCount, sentItemsCount, func() { _ = q.Add(addedItem) })
 
-	go interactWithQueue(&wg, receiverCount2, receivedItemsCount2, func() { q.Take() })
+	go concurrentQueueInteraction(&wg, receiverCount2, receivedItemsCount2, func() { _, _ = q.Take() })
 
-	go interactWithQueue(&wg, returnerCount, returnedItemsCount, func() { q.PutBack(addedItem) })
+	go concurrentQueueInteraction(&wg, returnerCount, returnedItemsCount, func() { _ = q.PutBack(addedItem) })
 
 	wg.Wait()
 
@@ -56,7 +56,7 @@ func TestQueue_Concurrency(t *testing.T) {
 		receiverCount2*receivedItemsCount2 +
 		returnerCount*returnedItemsCount
 
-	actualCount := q.Count()
+	actualCount, _ := q.Count()
 
 	if expectedCount != actualCount {
 		t.Fatalf("%d elements were expected, but there were %d", expectedCount, actualCount)
@@ -66,30 +66,35 @@ func TestQueue_Concurrency(t *testing.T) {
 func TestQueue_Sequence(t *testing.T) {
 	q := newQueue()
 
-	for i := 0; i < 10; i++ {
-		q.Add([]byte(strconv.Itoa(i)))
+	const itemsCount = 10
+
+	for i := 0; i < itemsCount; i++ {
+		_ = q.Add([]byte(strconv.Itoa(i)))
 	}
 
-	for i := 0; i < 10; i++ {
-		q.PutBack([]byte(strconv.Itoa(i)))
+	for i := 0; i < itemsCount; i++ {
+		_ = q.PutBack([]byte(strconv.Itoa(i)))
 	}
 
 	check := func(i int) {
 		t.Helper()
 
 		expected := strconv.Itoa(i)
-		received := string(q.Take())
+
+		item, _ := q.Take()
+
+		received := string(item)
 
 		if received != expected {
 			t.Fatalf("expected \"%v\", received \"%v\"", expected, received)
 		}
 	}
 
-	for i := 9; i >= 0; i-- {
+	for i := itemsCount - 1; i >= 0; i-- {
 		check(i)
 	}
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < itemsCount; i++ {
 		check(i)
 	}
 }
@@ -101,7 +106,9 @@ func TestQueue_Take(t *testing.T) {
 
 	go func() {
 		for {
-			takenItemChan <- q.Take()
+			item, _ := q.Take()
+
+			takenItemChan <- item
 		}
 	}()
 
@@ -123,16 +130,16 @@ func TestQueue_Take(t *testing.T) {
 		}
 	}
 
-	q.Add(addedItem)
+	_ = q.Add(addedItem)
 
 	waitData()
 
-	q.PutBack(addedItem)
+	_ = q.PutBack(addedItem)
 
 	waitData()
 }
 
-func interactWithQueue(wg *sync.WaitGroup, goroutineCount int, itemCount int, fn func()) {
+func concurrentQueueInteraction(wg *sync.WaitGroup, goroutineCount int, itemCount int, fn func()) {
 	for i := 0; i < goroutineCount; i++ {
 		go func() {
 			defer wg.Done()

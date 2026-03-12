@@ -23,6 +23,7 @@ func NewServer(queueManager *queue.Manager) *Server {
 		{"POST /queues/{key}", httpServer.createHandler},
 		{"GET /queues/{key}", httpServer.getHandler},
 		{"GET /queues", httpServer.listHandler},
+		{"DELETE /queues/{key}", httpServer.deleteHandler},
 	}
 
 	for _, r := range routes {
@@ -51,13 +52,15 @@ func (s *Server) createHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getHandler(w http.ResponseWriter, r *http.Request) {
 	q, ok := s.queueManager.Get(r.PathValue("key"))
 
-	if !ok {
+	itemsCount, err := q.Count()
+
+	if !ok || err != nil {
 		writeJson(w, map[string]any{"message": "a queue with this key does not exist"}, http.StatusNotFound)
 
 		return
 	}
 
-	writeJson(w, map[string]any{"items_count": q.Count()}, http.StatusOK)
+	writeJson(w, map[string]any{"items_count": itemsCount}, http.StatusOK)
 }
 
 func (s *Server) listHandler(w http.ResponseWriter, _ *http.Request) {
@@ -68,10 +71,28 @@ func (s *Server) listHandler(w http.ResponseWriter, _ *http.Request) {
 	queuesInfo := make(map[string]any, queuesCount)
 
 	for key, q := range queues {
-		queuesInfo[key] = map[string]any{"items_count": q.Count()}
+		itemsCount, err := q.Count()
+
+		if err != nil {
+			continue
+		}
+
+		queuesInfo[key] = map[string]any{"items_count": itemsCount}
 	}
 
 	writeJson(w, map[string]any{"queues_info": queuesInfo, "queues_count": queuesCount}, http.StatusOK)
+}
+
+func (s *Server) deleteHandler(w http.ResponseWriter, r *http.Request) {
+	ok := s.queueManager.Delete(r.PathValue("key"))
+
+	if !ok {
+		writeJson(w, map[string]any{"message": "a queue with this key does not exist"}, http.StatusNotFound)
+
+		return
+	}
+
+	writeJson(w, map[string]any{"message": "the queue was successfully deleted"}, http.StatusOK)
 }
 
 func writeJson(w http.ResponseWriter, data map[string]any, code int) {

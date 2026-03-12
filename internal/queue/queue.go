@@ -1,10 +1,16 @@
 package queue
 
-import "sync"
+import (
+	"errors"
+	"sync"
+)
+
+var ErrQueueDeleted = errors.New("interaction with the deleted queue")
 
 type Queue struct {
-	mutex sync.Mutex
-	cond  *sync.Cond
+	mutex   sync.Mutex
+	cond    *sync.Cond
+	deleted bool
 	// TODO the slices need to be replaced with a different structure
 	items [][]byte
 }
@@ -17,21 +23,35 @@ func newQueue() *Queue {
 	return q
 }
 
-func (q *Queue) Add(item []byte) {
+func (q *Queue) Add(item []byte) error {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
+
+	if q.deleted {
+		return ErrQueueDeleted
+	}
 
 	q.items = append(q.items, item)
 
 	q.cond.Signal()
+
+	return nil
 }
 
-func (q *Queue) Take() []byte {
+func (q *Queue) Take() ([]byte, error) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
-	for len(q.items) == 0 {
-		q.cond.Wait()
+	for {
+		if q.deleted {
+			return nil, ErrQueueDeleted
+		}
+
+		if len(q.items) == 0 {
+			q.cond.Wait()
+		} else {
+			break
+		}
 	}
 
 	item := q.items[0]
@@ -40,12 +60,16 @@ func (q *Queue) Take() []byte {
 
 	q.items = q.items[1:]
 
-	return item
+	return item, nil
 }
 
-func (q *Queue) PutBack(item []byte) {
+func (q *Queue) PutBack(item []byte) error {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
+
+	if q.deleted {
+		return ErrQueueDeleted
+	}
 
 	q.items = append(q.items, nil)
 
@@ -54,11 +78,26 @@ func (q *Queue) PutBack(item []byte) {
 	q.items[0] = item
 
 	q.cond.Signal()
+
+	return nil
 }
 
-func (q *Queue) Count() int {
+func (q *Queue) Count() (int, error) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
-	return len(q.items)
+	if q.deleted {
+		return 0, ErrQueueDeleted
+	}
+
+	return len(q.items), nil
+}
+
+func (q *Queue) delete() {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+
+	q.deleted = true
+
+	q.cond.Broadcast()
 }

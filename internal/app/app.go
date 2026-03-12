@@ -7,19 +7,19 @@ import (
 	"super-simple-queues/internal/server/tcp"
 )
 
-type App struct {
-	queueManager *queue.Manager
-}
+type App struct{}
 
 func New() *App {
-	return &App{queue.NewManager()}
+	return &App{}
 }
 
 func (a *App) Run(tcpPort int, httpPort int) error {
+	m := queue.NewManager()
+
 	errChan := make(chan error)
 
-	server.RunGo(tcp.NewServer(a.queueManager), tcpPort, errChan)
-	server.RunGo(http.NewServer(a.queueManager), httpPort, errChan)
+	server.RunGo(tcp.NewServer(m), tcpPort, errChan)
+	server.RunGo(http.NewServer(m), httpPort, errChan)
 
 	return <-errChan
 }

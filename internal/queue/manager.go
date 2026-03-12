@@ -47,3 +47,20 @@ func (m *Manager) GetAll() map[string]*Queue {
 
 	return queues
 }
+
+func (m *Manager) Delete(key string) bool {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	queue, ok := m.queues[key]
+
+	if !ok {
+		return false
+	}
+
+	queue.delete()
+
+	delete(m.queues, key)
+
+	return true
+}

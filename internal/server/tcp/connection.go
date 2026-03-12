@@ -70,7 +70,9 @@ func (c *connection) readMessages(q *queue.Queue) error {
 			return errors.New("expected message type \"Payload\"")
 		}
 
-		q.Add(payloadMessage.Data)
+		if err = q.Add(payloadMessage.Data); err != nil {
+			return err
+		}
 
 		if err = c.codec.writeMessage(confirmMessage); err != nil {
 			return err
@@ -80,10 +82,16 @@ func (c *connection) readMessages(q *queue.Queue) error {
 
 func (c *connection) writeMessages(q *queue.Queue) error {
 	for {
-		item := q.Take()
+		item, err := q.Take()
 
-		if err := c.codec.writeMessage(message.NewPayloadWithData(item)); err != nil {
-			q.PutBack(item)
+		if err != nil {
+			return err
+		}
+
+		if err = c.codec.writeMessage(message.NewPayloadWithData(item)); err != nil {
+			if err = q.PutBack(item); err != nil {
+				return err
+			}
 
 			return err
 		}
@@ -91,7 +99,9 @@ func (c *connection) writeMessages(q *queue.Queue) error {
 		msg, err := c.codec.readMessage()
 
 		if err != nil {
-			q.PutBack(item)
+			if err = q.PutBack(item); err != nil {
+				return err
+			}
 
 			return err
 		}
@@ -99,7 +109,9 @@ func (c *connection) writeMessages(q *queue.Queue) error {
 		_, ok := msg.(*message.Confirm)
 
 		if !ok {
-			q.PutBack(item)
+			if err = q.PutBack(item); err != nil {
+				return err
+			}
 
 			return errors.New("expected message type \"Confirm\"")
 		}
