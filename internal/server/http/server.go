@@ -52,10 +52,16 @@ func (s *Server) createHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getHandler(w http.ResponseWriter, r *http.Request) {
 	q, ok := s.queueManager.Get(r.PathValue("key"))
 
+	if !ok {
+		writeJson(w, map[string]any{"message": "a queue with this key does not exist"}, http.StatusNotFound)
+
+		return
+	}
+
 	itemsCount, err := q.Count()
 
-	if !ok || err != nil {
-		writeJson(w, map[string]any{"message": "a queue with this key does not exist"}, http.StatusNotFound)
+	if err != nil {
+		writeJson(w, map[string]any{"message": "the queue has already been deleted"}, http.StatusNotFound)
 
 		return
 	}
