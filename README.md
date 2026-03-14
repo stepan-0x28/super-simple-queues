@@ -2,6 +2,21 @@
 
 Super simple queuing system.
 
+## Quick start
+
+### Start with Docker
+
+```bash
+docker build -t super-simple-queues .
+docker run -d --name super-simple-queues -e TCP_PORT=8888 -e HTTP_PORT=8080 -p 8888:8888 -p 8080:8080 super-simple-queues
+```
+
+Or use Docker Compose, but first copy the `.env.example` file to the `.env` file and adjust the values as needed:
+
+```bash
+docker compose up -d
+```
+
 ## An example of the system operation in the diagram
 
 ```mermaid
@@ -45,8 +60,6 @@ sequenceDiagram
     end
 ```
 
-### Message types and their structure
-
 Three types of messages are used to interact with the system:
 
 - Init
@@ -55,7 +68,7 @@ Three types of messages are used to interact with the system:
 
 Each message begins with a one-byte header that defines the message type.
 
-#### Message type "Init"
+### Message type "Init"
 
 <table>
 <tr>
@@ -92,7 +105,7 @@ Example:
 </tr>
 </table>
 
-#### Message type "Payload"
+### Message type "Payload"
 
 <table>
 <tr>
@@ -124,7 +137,7 @@ Example:
 </tr>
 </table>
 
-#### Message type "Confirm"
+### Message type "Confirm"
 
 <table>
 <tr>
