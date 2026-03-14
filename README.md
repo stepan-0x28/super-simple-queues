@@ -8,6 +8,9 @@ Super simple queuing system.
 
 ```bash
 docker build -t super-simple-queues .
+```
+
+```bash
 docker run -d --name super-simple-queues -e TCP_PORT=8888 -e HTTP_PORT=8080 -p 8888:8888 -p 8080:8080 super-simple-queues
 ```
 
