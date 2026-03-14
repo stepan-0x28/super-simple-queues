@@ -4,22 +4,43 @@
 
 ```mermaid
 flowchart LR
-    Queue1[(Queue)]
-    Queue2[(Queue)]
-    Sender1[Sender]
-    Sender2[Sender]
-    Sender3[Sender]
-    Sender4[Sender]
-    Receiver1[Receiver]
-    Receiver2[Receiver]
-    Receiver3[Receiver]
-    Receiver4[Receiver]
+    q1[(Queue)]
+    q2[(Queue)]
+    s1[Sender]
+    s2[Sender]
+    s3[Sender]
+    s4[Sender]
+    r1[Receiver]
+    r2[Receiver]
+    r3[Receiver]
+    r4[Receiver]
 
     subgraph Super simple queues
-        Queue1
-        Queue2
+        q1
+        q2
     end
 
-    Sender1 & Sender2 --> Queue1 --> Receiver1 & Receiver2
-    Sender3 & Sender4 --> Queue2 --> Receiver3 & Receiver4
+    s1 & s2 --> q1 --> r1 & r2
+    s3 & s4 --> q2 --> r3 & r4
+```
+
+## Interaction with the system
+
+### Sequence diagram
+
+```mermaid
+sequenceDiagram
+    participant c as Client
+    participant s as Server
+    c ->>+ s: Init message
+    s -->>- c: Confirm message
+    loop Further communication
+        alt Client in sending mode
+            c ->>+ s: Payload message
+            s -->>- c: Confirm message
+        else Client in receiving mode
+            s ->>+ c: Payload message
+            c -->>- s: Confirm message
+        end
+    end
 ```
