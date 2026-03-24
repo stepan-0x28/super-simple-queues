@@ -2,12 +2,17 @@ package queue
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 )
 
+var queueChunkSizes = []int{1, 2, 4, 16, 64, 256}
+
 func TestNewManager(t *testing.T) {
-	m := NewManager()
+	queueChunkSize := 16
+
+	m := NewManager(queueChunkSize)
 
 	if m == nil {
 		t.Fatal("a non-nil manager is expected")
@@ -19,55 +24,59 @@ func TestNewManager(t *testing.T) {
 }
 
 func TestManager_Delete(t *testing.T) {
-	m := NewManager()
+	for _, queueChunkSize := range queueChunkSizes {
+		t.Run(fmt.Sprintf("queueChunkSize=%d", queueChunkSize), func(t *testing.T) {
+			m := NewManager(queueChunkSize)
 
-	const queueKey = "test"
+			const queueKey = "test"
 
-	deleted := m.Delete(queueKey)
+			deleted := m.Delete(queueKey)
 
-	if deleted {
-		t.Fatal("it was expected that there would be nothing to delete")
-	}
-
-	m.Create(queueKey)
-
-	q, _ := m.Get(queueKey)
-
-	errChan := make(chan error)
-
-	addedItem := []byte("test")
-
-	go queueInteraction(errChan, func() error { return q.Add(addedItem) })
-
-	go queueInteraction(errChan, func() error { _, err := q.Take(); return err })
-
-	go queueInteraction(errChan, func() error { return q.PutBack(addedItem) })
-
-	time.Sleep(time.Second)
-
-	deleted = m.Delete(queueKey)
-
-	if !deleted {
-		t.Fatal("it is expected that the queue has been successfully deleted")
-	}
-
-	_, ok := m.Get(queueKey)
-
-	if ok {
-		t.Fatal("it is expected that the queue will not exist")
-	}
-
-	const interactingCount = 3
-
-	for i := 0; i < interactingCount; i++ {
-		select {
-		case err := <-errChan:
-			if !errors.Is(err, ErrQueueDeleted) {
-				t.Fatal("the error was expected to match ErrQueueDeleted")
+			if deleted {
+				t.Fatal("it was expected that there would be nothing to delete")
 			}
-		case <-time.After(time.Second):
-			t.Fatal("it was expected that an error would be received")
-		}
+
+			m.Create(queueKey)
+
+			q, _ := m.Get(queueKey)
+
+			errChan := make(chan error)
+
+			addedItem := []byte("test")
+
+			go queueInteraction(errChan, func() error { return q.Add(addedItem) })
+
+			go queueInteraction(errChan, func() error { _, err := q.Take(); return err })
+
+			go queueInteraction(errChan, func() error { return q.PutBack(addedItem) })
+
+			time.Sleep(time.Second)
+
+			deleted = m.Delete(queueKey)
+
+			if !deleted {
+				t.Fatal("it is expected that the queue has been successfully deleted")
+			}
+
+			_, ok := m.Get(queueKey)
+
+			if ok {
+				t.Fatal("it is expected that the queue will not exist")
+			}
+
+			const interactingCount = 3
+
+			for i := 0; i < interactingCount; i++ {
+				select {
+				case err := <-errChan:
+					if !errors.Is(err, ErrQueueDeleted) {
+						t.Fatal("the error was expected to match ErrQueueDeleted")
+					}
+				case <-time.After(time.Second):
+					t.Fatal("it was expected that an error would be received")
+				}
+			}
+		})
 	}
 }
 

@@ -3,12 +3,13 @@ package queue
 import "sync"
 
 type Manager struct {
-	mutex  sync.Mutex
-	queues map[string]*Queue
+	queues         map[string]*Queue
+	queueChunkSize int
+	mutex          sync.Mutex
 }
 
-func NewManager() *Manager {
-	return &Manager{queues: make(map[string]*Queue)}
+func NewManager(queueChunkSize int) *Manager {
+	return &Manager{queues: make(map[string]*Queue, 64), queueChunkSize: queueChunkSize}
 }
 
 func (m *Manager) Create(key string) bool {
@@ -21,7 +22,7 @@ func (m *Manager) Create(key string) bool {
 		return false
 	}
 
-	m.queues[key] = newQueue()
+	m.queues[key] = newQueue(m.queueChunkSize)
 
 	return true
 }

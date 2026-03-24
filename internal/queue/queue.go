@@ -7,16 +7,32 @@ import (
 
 var ErrQueueDeleted = errors.New("interaction with the deleted queue")
 
-type Queue struct {
-	mutex   sync.Mutex
-	cond    *sync.Cond
-	deleted bool
-	// TODO the slices need to be replaced with a different structure
-	items [][]byte
+type chunk struct {
+	data [][]byte
+	next *chunk
 }
 
-func newQueue() *Queue {
-	q := &Queue{items: make([][]byte, 0, 1024)}
+func newChunk(size int) *chunk {
+	return &chunk{data: make([][]byte, size)}
+}
+
+type Queue struct {
+	head      *chunk
+	tail      *chunk
+	headPos   int
+	tailPos   int
+	count     int
+	deleted   bool
+	chunkSize int
+	mutex     sync.Mutex
+	cond      *sync.Cond
+}
+
+func newQueue(chunkSize int) *Queue {
+	q := &Queue{chunkSize: chunkSize}
+
+	q.head = newChunk(q.chunkSize)
+	q.tail = q.head
 
 	q.cond = sync.NewCond(&q.mutex)
 
@@ -31,7 +47,20 @@ func (q *Queue) Add(item []byte) error {
 		return ErrQueueDeleted
 	}
 
-	q.items = append(q.items, item)
+	if q.tailPos == q.chunkSize {
+		q.tailPos = 0
+
+		c := newChunk(q.chunkSize)
+
+		q.tail.next = c
+		q.tail = c
+	}
+
+	q.tail.data[q.tailPos] = item
+
+	q.tailPos++
+
+	q.count++
 
 	q.cond.Signal()
 
@@ -47,18 +76,26 @@ func (q *Queue) Take() ([]byte, error) {
 			return nil, ErrQueueDeleted
 		}
 
-		if len(q.items) == 0 {
+		if q.count == 0 {
 			q.cond.Wait()
 		} else {
 			break
 		}
 	}
 
-	item := q.items[0]
+	if q.headPos == q.chunkSize {
+		q.headPos = 0
 
-	q.items[0] = nil
+		q.head = q.head.next
+	}
 
-	q.items = q.items[1:]
+	item := q.head.data[q.headPos]
+
+	q.head.data[q.headPos] = nil
+
+	q.headPos++
+
+	q.count--
 
 	return item, nil
 }
@@ -71,11 +108,21 @@ func (q *Queue) PutBack(item []byte) error {
 		return ErrQueueDeleted
 	}
 
-	q.items = append(q.items, nil)
+	if q.headPos == 0 {
+		q.headPos = q.chunkSize
 
-	copy(q.items[1:], q.items[:len(q.items)-1])
+		c := newChunk(q.chunkSize)
 
-	q.items[0] = item
+		c.next = q.head
+
+		q.head = c
+	}
+
+	q.headPos--
+
+	q.head.data[q.headPos] = item
+
+	q.count++
 
 	q.cond.Signal()
 
@@ -90,7 +137,7 @@ func (q *Queue) Count() (int, error) {
 		return 0, ErrQueueDeleted
 	}
 
-	return len(q.items), nil
+	return q.count, nil
 }
 
 func (q *Queue) delete() {

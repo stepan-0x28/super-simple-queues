@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"fmt"
 	"strconv"
 	"sync"
 	"testing"
@@ -8,7 +9,9 @@ import (
 )
 
 func TestNewQueue(t *testing.T) {
-	q := newQueue()
+	chunkSize := 16
+
+	q := newQueue(chunkSize)
 
 	if q == nil {
 		t.Fatal("non-nil queue expected")
@@ -22,8 +25,6 @@ func TestNewQueue(t *testing.T) {
 }
 
 func TestQueue_Concurrency(t *testing.T) {
-	var wg sync.WaitGroup
-
 	// values have been selected at which the queue at the end will not be empty
 	const (
 		senderCount, sentItemsCount         = 64, 128
@@ -32,75 +33,87 @@ func TestQueue_Concurrency(t *testing.T) {
 		returnerCount, returnedItemsCount   = 4, 8
 	)
 
-	q := newQueue()
+	for _, chunkSize := range queueChunkSizes {
+		t.Run(fmt.Sprintf("chunkSize=%d", chunkSize), func(t *testing.T) {
+			var wg sync.WaitGroup
 
-	wg.Add(senderCount + receiverCount + receiverCount2 + returnerCount)
+			q := newQueue(chunkSize)
 
-	concurrentQueueInteraction(&wg, receiverCount, receivedItemsCount, func() { _, _ = q.Take() })
+			wg.Add(senderCount + receiverCount + receiverCount2 + returnerCount)
 
-	// let's wait to increase the likelihood that q.Take() will call q.cond.Wait()
-	time.Sleep(time.Second)
+			concurrentQueueInteraction(&wg, receiverCount, receivedItemsCount, func() { _, _ = q.Take() })
 
-	addedItem := []byte("test")
+			// let's wait to increase the likelihood that q.Take() will call q.cond.Wait()
+			time.Sleep(time.Second)
 
-	go concurrentQueueInteraction(&wg, senderCount, sentItemsCount, func() { _ = q.Add(addedItem) })
+			addedItem := []byte("test")
 
-	go concurrentQueueInteraction(&wg, receiverCount2, receivedItemsCount2, func() { _, _ = q.Take() })
+			go concurrentQueueInteraction(&wg, senderCount, sentItemsCount, func() { _ = q.Add(addedItem) })
 
-	go concurrentQueueInteraction(&wg, returnerCount, returnedItemsCount, func() { _ = q.PutBack(addedItem) })
+			go concurrentQueueInteraction(&wg, receiverCount2, receivedItemsCount2, func() { _, _ = q.Take() })
 
-	wg.Wait()
+			go concurrentQueueInteraction(&wg, returnerCount, returnedItemsCount, func() { _ = q.PutBack(addedItem) })
 
-	expectedCount := senderCount*sentItemsCount -
-		receiverCount*receivedItemsCount -
-		receiverCount2*receivedItemsCount2 +
-		returnerCount*returnedItemsCount
+			wg.Wait()
 
-	actualCount, _ := q.Count()
+			expectedCount := senderCount*sentItemsCount -
+				receiverCount*receivedItemsCount -
+				receiverCount2*receivedItemsCount2 +
+				returnerCount*returnedItemsCount
 
-	if expectedCount != actualCount {
-		t.Fatalf("%d elements were expected, but there were %d", expectedCount, actualCount)
+			actualCount, _ := q.Count()
+
+			if expectedCount != actualCount {
+				t.Fatalf("%d elements were expected, but there were %d", expectedCount, actualCount)
+			}
+		})
 	}
 }
 
 func TestQueue_Sequence(t *testing.T) {
-	q := newQueue()
+	for _, chunkSize := range queueChunkSizes {
+		t.Run(fmt.Sprintf("chunkSize=%d", chunkSize), func(t *testing.T) {
+			q := newQueue(chunkSize)
 
-	const itemsCount = 10
+			const itemsCount = 10
 
-	for i := 0; i < itemsCount; i++ {
-		_ = q.Add([]byte(strconv.Itoa(i)))
-	}
+			for i := 0; i < itemsCount; i++ {
+				_ = q.Add([]byte(strconv.Itoa(i)))
+			}
 
-	for i := 0; i < itemsCount; i++ {
-		_ = q.PutBack([]byte(strconv.Itoa(i)))
-	}
+			for i := 0; i < itemsCount; i++ {
+				_ = q.PutBack([]byte(strconv.Itoa(i)))
+			}
 
-	check := func(i int) {
-		t.Helper()
+			check := func(i int) {
+				t.Helper()
 
-		expected := strconv.Itoa(i)
+				expected := strconv.Itoa(i)
 
-		item, _ := q.Take()
+				item, _ := q.Take()
 
-		received := string(item)
+				received := string(item)
 
-		if received != expected {
-			t.Fatalf("expected \"%v\", received \"%v\"", expected, received)
-		}
-	}
+				if received != expected {
+					t.Fatalf("expected \"%v\", received \"%v\"", expected, received)
+				}
+			}
 
-	for i := itemsCount - 1; i >= 0; i-- {
-		check(i)
-	}
+			for i := itemsCount - 1; i >= 0; i-- {
+				check(i)
+			}
 
-	for i := 0; i < itemsCount; i++ {
-		check(i)
+			for i := 0; i < itemsCount; i++ {
+				check(i)
+			}
+		})
 	}
 }
 
 func TestQueue_Take(t *testing.T) {
-	q := newQueue()
+	chunkSize := 16
+
+	q := newQueue(chunkSize)
 
 	takenItemChan := make(chan []byte)
 

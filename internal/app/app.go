@@ -13,8 +13,8 @@ func New() *App {
 	return &App{}
 }
 
-func (a *App) Run(tcpPort int, httpPort int) error {
-	m := queue.NewManager()
+func (a *App) Run(tcpPort int, httpPort int, queueChunkSize int) error {
+	m := queue.NewManager(queueChunkSize)
 
 	errChan := make(chan error)
 

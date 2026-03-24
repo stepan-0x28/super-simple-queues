@@ -10,13 +10,19 @@ import (
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 
-	tcpPort, err := strconv.Atoi(os.Getenv("TCP_PORT"))
+	tcpPort, err := strconv.Atoi(getEnv("TCP_PORT", "8888"))
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	httpPort, err := strconv.Atoi(os.Getenv("HTTP_PORT"))
+	httpPort, err := strconv.Atoi(getEnv("HTTP_PORT", "8080"))
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	queueChunkSize, err := strconv.Atoi(getEnv("QUEUE_CHUNK_SIZE", "1024"))
 
 	if err != nil {
 		log.Fatal(err)
@@ -24,7 +30,15 @@ func main() {
 
 	a := app.New()
 
-	if err = a.Run(tcpPort, httpPort); err != nil {
+	if err = a.Run(tcpPort, httpPort, queueChunkSize); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func getEnv(key string, defaultValue string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+
+	return defaultValue
 }
