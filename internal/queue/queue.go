@@ -2,6 +2,7 @@ package queue
 
 import (
 	"errors"
+	"log/slog"
 	"sync"
 )
 
@@ -24,12 +25,13 @@ type Queue struct {
 	count     int
 	deleted   bool
 	chunkSize int
+	key       string
 	mutex     sync.Mutex
 	cond      *sync.Cond
 }
 
-func newQueue(chunkSize int) *Queue {
-	q := &Queue{chunkSize: chunkSize}
+func newQueue(chunkSize int, key string) *Queue {
+	q := &Queue{chunkSize: chunkSize, key: key}
 
 	q.head = newChunk(q.chunkSize)
 	q.tail = q.head
@@ -54,6 +56,9 @@ func (q *Queue) Add(item []byte) error {
 
 		q.tail.next = c
 		q.tail = c
+
+		slog.Debug("new tail chunk created", slog.Any("queue", q.key),
+			slog.Any("chunk_size", q.chunkSize), slog.Any("count", q.count))
 	}
 
 	q.tail.data[q.tailPos] = item
@@ -61,6 +66,9 @@ func (q *Queue) Add(item []byte) error {
 	q.tailPos++
 
 	q.count++
+
+	slog.Debug("item added", slog.Any("queue", q.key), slog.Any("chunk_size", q.chunkSize),
+		slog.Any("count", q.count))
 
 	q.cond.Signal()
 
@@ -87,6 +95,9 @@ func (q *Queue) Take() ([]byte, error) {
 		q.headPos = 0
 
 		q.head = q.head.next
+
+		slog.Debug("head chunk shifted", slog.Any("queue", q.key), slog.Any("chunk_size", q.chunkSize),
+			slog.Any("count", q.count))
 	}
 
 	item := q.head.data[q.headPos]
@@ -96,6 +107,9 @@ func (q *Queue) Take() ([]byte, error) {
 	q.headPos++
 
 	q.count--
+
+	slog.Debug("item taken", slog.Any("queue", q.key), slog.Any("chunk_size", q.chunkSize),
+		slog.Any("count", q.count))
 
 	return item, nil
 }
@@ -116,6 +130,9 @@ func (q *Queue) PutBack(item []byte) error {
 		c.next = q.head
 
 		q.head = c
+
+		slog.Debug("new head chunk created", slog.Any("queue", q.key),
+			slog.Any("chunk_size", q.chunkSize), slog.Any("count", q.count))
 	}
 
 	q.headPos--
@@ -123,6 +140,9 @@ func (q *Queue) PutBack(item []byte) error {
 	q.head.data[q.headPos] = item
 
 	q.count++
+
+	slog.Debug("item put back", slog.Any("queue", q.key), slog.Any("chunk_size", q.chunkSize),
+		slog.Any("count", q.count))
 
 	q.cond.Signal()
 

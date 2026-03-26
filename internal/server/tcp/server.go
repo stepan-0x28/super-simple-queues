@@ -61,7 +61,12 @@ func (s *Server) processConnection(conn net.Conn) {
 	}
 
 	if err = c.run(operatingMode, q); err != nil {
-		if !errors.Is(err, io.EOF) {
+		switch {
+		case errors.Is(err, io.EOF):
+			// normal termination of connection processing
+		case errors.Is(err, queue.ErrQueueDeleted):
+			slog.Info("connection processing ended due to queue deletion", addrAttr)
+		default:
 			slog.Warn("failed to process connection", slog.Any("err", err), addrAttr)
 		}
 	}

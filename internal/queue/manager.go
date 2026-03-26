@@ -25,7 +25,7 @@ func (m *Manager) Create(key string) bool {
 		return false
 	}
 
-	m.queues[key] = newQueue(m.queueChunkSize)
+	m.queues[key] = newQueue(m.queueChunkSize, key)
 
 	slog.Info("queue created", slog.Any("key", key))
 

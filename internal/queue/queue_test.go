@@ -8,10 +8,13 @@ import (
 	"time"
 )
 
-func TestNewQueue(t *testing.T) {
-	chunkSize := 16
+const (
+	chunkSize = 16
+	queueKey  = "test"
+)
 
-	q := newQueue(chunkSize)
+func TestNewQueue(t *testing.T) {
+	q := newQueue(chunkSize, queueKey)
 
 	if q == nil {
 		t.Fatal("non-nil queue expected")
@@ -33,11 +36,11 @@ func TestQueue_Concurrency(t *testing.T) {
 		returnerCount, returnedItemsCount   = 4, 8
 	)
 
-	for _, chunkSize := range queueChunkSizes {
-		t.Run(fmt.Sprintf("chunkSize=%d", chunkSize), func(t *testing.T) {
+	for _, queueChunkSize := range queueChunkSizes {
+		t.Run(fmt.Sprintf("queueChunkSize=%d", chunkSize), func(t *testing.T) {
 			var wg sync.WaitGroup
 
-			q := newQueue(chunkSize)
+			q := newQueue(queueChunkSize, queueKey)
 
 			wg.Add(senderCount + receiverCount + receiverCount2 + returnerCount)
 
@@ -71,9 +74,9 @@ func TestQueue_Concurrency(t *testing.T) {
 }
 
 func TestQueue_Sequence(t *testing.T) {
-	for _, chunkSize := range queueChunkSizes {
-		t.Run(fmt.Sprintf("chunkSize=%d", chunkSize), func(t *testing.T) {
-			q := newQueue(chunkSize)
+	for _, queueChunkSize := range queueChunkSizes {
+		t.Run(fmt.Sprintf("queueChunkSize=%d", chunkSize), func(t *testing.T) {
+			q := newQueue(queueChunkSize, queueKey)
 
 			const itemsCount = 10
 
@@ -111,9 +114,7 @@ func TestQueue_Sequence(t *testing.T) {
 }
 
 func TestQueue_Take(t *testing.T) {
-	chunkSize := 16
-
-	q := newQueue(chunkSize)
+	q := newQueue(chunkSize, queueKey)
 
 	takenItemChan := make(chan []byte)
 
