@@ -1,37 +1,50 @@
 package main
 
 import (
-	"log"
+	"log/slog"
 	"os"
 	"strconv"
 	"super-simple-queues/internal/app"
 )
 
 func main() {
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		AddSource: true,
+		Level:     convertLoggingLevel(getEnv("LOGGING_LEVEL", "Info")),
+	})
 
-	tcpPort, err := strconv.Atoi(getEnv("TCP_PORT", "8888"))
+	slog.SetDefault(slog.New(handler))
+
+	tcpPort, err := getEnvInt("TCP_PORT", 8888)
 
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("invalid TCP port", slog.Any("err", err))
+
+		os.Exit(1)
 	}
 
-	httpPort, err := strconv.Atoi(getEnv("HTTP_PORT", "8080"))
+	httpPort, err := getEnvInt("HTTP_PORT", 8080)
 
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("invalid HTTP port", slog.Any("err", err))
+
+		os.Exit(1)
 	}
 
-	queueChunkSize, err := strconv.Atoi(getEnv("QUEUE_CHUNK_SIZE", "1024"))
+	queueChunkSize, err := getEnvInt("QUEUE_CHUNK_SIZE", 1024)
 
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("invalid queue chunk size", slog.Any("err", err))
+
+		os.Exit(1)
 	}
 
 	a := app.New()
 
 	if err = a.Run(tcpPort, httpPort, queueChunkSize); err != nil {
-		log.Fatal(err)
+		slog.Error("application error", slog.Any("err", err))
+
+		os.Exit(1)
 	}
 }
 
@@ -41,4 +54,21 @@ func getEnv(key string, defaultValue string) string {
 	}
 
 	return defaultValue
+}
+
+func getEnvInt(key string, defaultValue int) (int, error) {
+	return strconv.Atoi(getEnv(key, strconv.Itoa(defaultValue)))
+}
+
+func convertLoggingLevel(l string) slog.Level {
+	switch l {
+	case "Debug":
+		return slog.LevelDebug
+	case "Warn":
+		return slog.LevelWarn
+	case "Error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
 }

@@ -1,8 +1,10 @@
 package tcp
 
 import (
+	"errors"
 	"fmt"
-	"log"
+	"io"
+	"log/slog"
 	"net"
 	"super-simple-queues/internal/queue"
 )
@@ -26,7 +28,7 @@ func (s *Server) Run(port int) error {
 		conn, err := tl.Accept()
 
 		if err != nil {
-			log.Println(err)
+			slog.Warn("failed to accept connection", slog.Any("err", err))
 
 			continue
 		}
@@ -38,7 +40,7 @@ func (s *Server) Run(port int) error {
 func (s *Server) processConnection(conn net.Conn) {
 	defer func() {
 		if err := conn.Close(); err != nil {
-			log.Println(err)
+			slog.Warn("failed to close connection", slog.Any("err", err))
 		}
 	}()
 
@@ -47,12 +49,14 @@ func (s *Server) processConnection(conn net.Conn) {
 	operatingMode, q, err := c.init(s.queueManager)
 
 	if err != nil {
-		log.Println(err)
+		slog.Warn("failed to initialize connection", slog.Any("err", err))
 
 		return
 	}
 
 	if err = c.run(operatingMode, q); err != nil {
-		log.Println(err)
+		if !errors.Is(err, io.EOF) {
+			slog.Warn("failed to process connection", slog.Any("err", err))
+		}
 	}
 }
