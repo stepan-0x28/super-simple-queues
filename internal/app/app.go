@@ -20,7 +20,7 @@ func (a *App) Run(cfg config.Config) error {
 
 	errChan := make(chan error)
 
-	server.RunGo(tcp.NewServer(m, cfg.TCPBufferSize), cfg.TCPPort, errChan)
+	server.RunGo(tcp.NewServer(m, cfg.TCPConnBufferSize), cfg.TCPPort, errChan)
 	server.RunGo(http.NewServer(m), cfg.HTTPPort, errChan)
 
 	slog.Info("application started", slog.Any("config", cfg))

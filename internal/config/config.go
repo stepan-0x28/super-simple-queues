@@ -7,11 +7,11 @@ import (
 )
 
 type Config struct {
-	LoggingLevel   slog.Level
-	TCPPort        int
-	HTTPPort       int
-	QueueChunkSize int
-	TCPBufferSize  int
+	LoggingLevel      slog.Level
+	TCPPort           int
+	HTTPPort          int
+	QueueChunkSize    int
+	TCPConnBufferSize int
 }
 
 func LoadConfig() (Config, error) {
@@ -46,18 +46,18 @@ func LoadConfig() (Config, error) {
 		return Config{}, err
 	}
 
-	tcpBufferSize, err := getEnvInt("TCP_BUFFER_SIZE", 256)
+	tcpConnBufferSize, err := getEnvInt("TCP_CONN_BUFFER_SIZE", 256)
 
 	if err != nil {
 		return Config{}, err
 	}
 
 	return Config{
-		LoggingLevel:   loggingLevel,
-		TCPPort:        tcpPort,
-		HTTPPort:       httpPort,
-		QueueChunkSize: queueChunkSize,
-		TCPBufferSize:  tcpBufferSize,
+		LoggingLevel:      loggingLevel,
+		TCPPort:           tcpPort,
+		HTTPPort:          httpPort,
+		QueueChunkSize:    queueChunkSize,
+		TCPConnBufferSize: tcpConnBufferSize,
 	}, nil
 }
 
