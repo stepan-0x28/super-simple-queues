@@ -107,6 +107,6 @@ func writeJson(w http.ResponseWriter, data map[string]any, code int) {
 	w.WriteHeader(code)
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		slog.Warn("failed JSON write", slog.Any("err", err))
+		slog.Warn("failed to write JSON response", slog.Any("err", err))
 	}
 }
