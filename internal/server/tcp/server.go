@@ -11,10 +11,11 @@ import (
 
 type Server struct {
 	queueManager *queue.Manager
+	bufferSize   int
 }
 
-func NewServer(queueManager *queue.Manager) *Server {
-	return &Server{queueManager: queueManager}
+func NewServer(queueManager *queue.Manager, bufferSize int) *Server {
+	return &Server{queueManager: queueManager, bufferSize: bufferSize}
 }
 
 func (s *Server) Run(port int) error {
@@ -48,7 +49,7 @@ func (s *Server) processConnection(conn net.Conn) {
 		}
 	}()
 
-	c := newConnection(conn)
+	c := newConnection(conn, s.bufferSize)
 
 	slog.Info("new connection", addrAttr)
 

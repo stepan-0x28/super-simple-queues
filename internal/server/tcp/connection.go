@@ -15,9 +15,9 @@ type connection struct {
 	codec *codec
 }
 
-func newConnection(conn net.Conn) *connection {
+func newConnection(conn net.Conn, bufferSize int) *connection {
 	return &connection{
-		codec: newCodec(bufio.NewReaderSize(conn, 256), bufio.NewWriterSize(conn, 256)),
+		codec: newCodec(bufio.NewReaderSize(conn, bufferSize), bufio.NewWriterSize(conn, bufferSize)),
 	}
 }
 
