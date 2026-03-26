@@ -38,25 +38,31 @@ func (s *Server) Run(port int) error {
 }
 
 func (s *Server) processConnection(conn net.Conn) {
+	addrAttr := slog.Any("addr", conn.RemoteAddr())
+
 	defer func() {
-		if err := conn.Close(); err != nil {
-			slog.Warn("failed to close connection", slog.Any("err", err))
+		if err := conn.Close(); err == nil {
+			slog.Info("connection closed", addrAttr)
+		} else {
+			slog.Warn("failed to close connection", slog.Any("err", err), addrAttr)
 		}
 	}()
 
 	c := newConnection(conn)
 
+	slog.Info("new connection", addrAttr)
+
 	operatingMode, q, err := c.init(s.queueManager)
 
 	if err != nil {
-		slog.Warn("failed to initialize connection", slog.Any("err", err))
+		slog.Warn("failed to initialize connection", slog.Any("err", err), addrAttr)
 
 		return
 	}
 
 	if err = c.run(operatingMode, q); err != nil {
 		if !errors.Is(err, io.EOF) {
-			slog.Warn("failed to process connection", slog.Any("err", err))
+			slog.Warn("failed to process connection", slog.Any("err", err), addrAttr)
 		}
 	}
 }

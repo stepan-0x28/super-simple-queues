@@ -1,6 +1,9 @@
 package queue
 
-import "sync"
+import (
+	"log/slog"
+	"sync"
+)
 
 type Manager struct {
 	queues         map[string]*Queue
@@ -23,6 +26,8 @@ func (m *Manager) Create(key string) bool {
 	}
 
 	m.queues[key] = newQueue(m.queueChunkSize)
+
+	slog.Info("queue created", slog.Any("key", key))
 
 	return true
 }
@@ -62,6 +67,8 @@ func (m *Manager) Delete(key string) bool {
 	queue.delete()
 
 	delete(m.queues, key)
+
+	slog.Info("queue deleted", slog.Any("key", key))
 
 	return true
 }

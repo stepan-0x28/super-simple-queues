@@ -1,6 +1,7 @@
 package app
 
 import (
+	"log/slog"
 	"super-simple-queues/internal/queue"
 	"super-simple-queues/internal/server"
 	"super-simple-queues/internal/server/http"
@@ -20,6 +21,9 @@ func (a *App) Run(tcpPort int, httpPort int, queueChunkSize int) error {
 
 	server.RunGo(tcp.NewServer(m), tcpPort, errChan)
 	server.RunGo(http.NewServer(m), httpPort, errChan)
+
+	slog.Info("application started", slog.Any("tcp_port", tcpPort), slog.Any("http_port", httpPort),
+		slog.Any("queue_chunk_size", queueChunkSize))
 
 	return <-errChan
 }
