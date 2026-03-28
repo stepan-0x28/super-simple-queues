@@ -10,7 +10,7 @@ import (
 var queueChunkSizes = []int{1, 2, 4, 16, 64, 256}
 
 func TestNewManager(t *testing.T) {
-	queueChunkSize := 16
+	const queueChunkSize = 16
 
 	m := NewManager(queueChunkSize)
 
