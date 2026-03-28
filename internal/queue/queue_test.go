@@ -37,7 +37,7 @@ func TestQueue_Concurrency(t *testing.T) {
 	)
 
 	for _, queueChunkSize := range queueChunkSizes {
-		t.Run(fmt.Sprintf("queueChunkSize=%d", chunkSize), func(t *testing.T) {
+		t.Run(fmt.Sprintf("queueChunkSize=%d", queueChunkSize), func(t *testing.T) {
 			var wg sync.WaitGroup
 
 			q := newQueue(queueChunkSize, queueKey)
@@ -75,7 +75,7 @@ func TestQueue_Concurrency(t *testing.T) {
 
 func TestQueue_Sequence(t *testing.T) {
 	for _, queueChunkSize := range queueChunkSizes {
-		t.Run(fmt.Sprintf("queueChunkSize=%d", chunkSize), func(t *testing.T) {
+		t.Run(fmt.Sprintf("queueChunkSize=%d", queueChunkSize), func(t *testing.T) {
 			q := newQueue(queueChunkSize, queueKey)
 
 			const itemsCount = 10
