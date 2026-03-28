@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"log/slog"
 	"os"
 	"strconv"
@@ -17,15 +18,17 @@ type Config struct {
 func LoadConfig() (Config, error) {
 	var loggingLevel slog.Level
 
-	switch getEnv("LOGGING_LEVEL", "") {
+	switch getEnv("LOGGING_LEVEL", "Info") {
 	case "Debug":
 		loggingLevel = slog.LevelDebug
+	case "Info":
+		loggingLevel = slog.LevelInfo
 	case "Warn":
 		loggingLevel = slog.LevelWarn
 	case "Error":
 		loggingLevel = slog.LevelError
 	default:
-		loggingLevel = slog.LevelInfo
+		return Config{}, errors.New("incorrect logging level")
 	}
 
 	tcpPort, err := getEnvInt("TCP_PORT", 8888)
