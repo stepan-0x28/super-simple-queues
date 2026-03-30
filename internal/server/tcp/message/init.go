@@ -1,10 +1,18 @@
 package message
 
-import "io"
+import (
+	"errors"
+	"io"
+)
 
 type OperatingMode bool
 
-const SendingOperatingMode OperatingMode = true
+const (
+	ReceivingOperatingMode OperatingMode = false
+	SendingOperatingMode   OperatingMode = true
+)
+
+var ErrIncorrectOperatingMode = errors.New("incorrect operating mode")
 
 type Init struct {
 	OperatingMode OperatingMode
@@ -30,7 +38,13 @@ func (i *Init) ReadBody(reader io.Reader) error {
 		return err
 	}
 
-	i.OperatingMode = oneByteBuffer[0] != 0
+	operatingMode := oneByteBuffer[0]
+
+	if operatingMode > 1 {
+		return ErrIncorrectOperatingMode
+	}
+
+	i.OperatingMode = operatingMode == 1
 
 	_, err = io.ReadFull(reader, oneByteBuffer)
 
