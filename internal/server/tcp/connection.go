@@ -89,8 +89,8 @@ func (c *connection) writeMessages(q *queue.Queue) error {
 		}
 
 		if err = c.codec.writeMessage(message.NewPayloadWithData(item)); err != nil {
-			if err = q.PutBack(item); err != nil {
-				return err
+			if putBackErr := q.PutBack(item); putBackErr != nil {
+				return putBackErr
 			}
 
 			return err
@@ -99,8 +99,8 @@ func (c *connection) writeMessages(q *queue.Queue) error {
 		msg, err := c.codec.readMessage()
 
 		if err != nil {
-			if err = q.PutBack(item); err != nil {
-				return err
+			if putBackErr := q.PutBack(item); putBackErr != nil {
+				return putBackErr
 			}
 
 			return err

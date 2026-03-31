@@ -6,7 +6,10 @@ import (
 	"sync"
 )
 
-var ErrQueueDeleted = errors.New("interaction with the deleted queue")
+var (
+	ErrQueueDeleted   = errors.New("interaction with the deleted queue")
+	ErrEmptyQueueItem = errors.New("queue item is empty")
+)
 
 type chunk struct {
 	data [][]byte
@@ -42,6 +45,10 @@ func newQueue(chunkSize int, key string) *Queue {
 }
 
 func (q *Queue) Add(item []byte) error {
+	if len(item) == 0 {
+		return ErrEmptyQueueItem
+	}
+
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
