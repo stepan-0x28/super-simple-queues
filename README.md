@@ -1,6 +1,33 @@
 # Super simple queues
 
-Super simple queuing system.
+[![CI](https://github.com/stepan-0x28/super-simple-queues/actions/workflows/ci.yml/badge.svg)](https://github.com/stepan-0x28/super-simple-queues/actions/workflows/ci.yml)
+
+A super simple queuing system for passing data from one or more senders to one or more queues, with the possibility of
+receiving this data by one or more receivers.
+
+### An example of the system operation in the diagram
+
+```mermaid
+flowchart LR
+    q1[(Queue)]
+    q2[(Queue)]
+    s1[Sender]
+    s2[Sender]
+    s3[Sender]
+    s4[Sender]
+    r1[Receiver]
+    r2[Receiver]
+    r3[Receiver]
+    r4[Receiver]
+
+    subgraph Super simple queues
+        q1
+        q2
+    end
+
+    s1 & s2 -- data --> q1 -- data --> r1 & r2
+    s3 & s4 -- data --> q2 -- data --> r3 & r4
+```
 
 ## Quick start
 
@@ -21,30 +48,6 @@ Or use Docker Compose, but first copy the `.env.example` file to the `.env` file
 
 ```bash
 docker compose up -d
-```
-
-## An example of the system operation in the diagram
-
-```mermaid
-flowchart LR
-    q1[(Queue)]
-    q2[(Queue)]
-    s1[Sender]
-    s2[Sender]
-    s3[Sender]
-    s4[Sender]
-    r1[Receiver]
-    r2[Receiver]
-    r3[Receiver]
-    r4[Receiver]
-
-    subgraph Super simple queues
-        q1
-        q2
-    end
-
-    s1 & s2 --> q1 --> r1 & r2
-    s3 & s4 --> q2 --> r3 & r4
 ```
 
 ## Interacting with the system via TCP
