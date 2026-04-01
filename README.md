@@ -11,7 +11,10 @@ docker build -t super-simple-queues .
 ```
 
 ```bash
-docker run -d --name super-simple-queues -e TCP_PORT=8888 -e HTTP_PORT=8080 -p 8888:8888 -p 8080:8080 super-simple-queues
+docker run -d --name super-simple-queues \
+    -e TCP_PORT=8888 -e HTTP_PORT=8080 -e QUEUE_CHUNK_SIZE=1024 -e LOGGING_LEVEL=Info -e TCP_CONN_BUFFER_SIZE=256 \
+    -p 8888:8888 -p 8080:8080 \
+  super-simple-queues
 ```
 
 Or use Docker Compose, but first copy the `.env.example` file to the `.env` file and adjust the values as needed:
