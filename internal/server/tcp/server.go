@@ -97,11 +97,11 @@ func (s *Server) port() (int, error) {
 
 	s.mutex.Unlock()
 
-	if listener != nil {
-		return listener.Addr().(*net.TCPAddr).Port, nil
+	if listener == nil {
+		return 0, ErrNotRunning
 	}
 
-	return 0, ErrNotRunning
+	return listener.Addr().(*net.TCPAddr).Port, nil
 }
 
 func (s *Server) close() error {
