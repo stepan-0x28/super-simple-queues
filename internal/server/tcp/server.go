@@ -7,12 +7,16 @@ import (
 	"log/slog"
 	"net"
 	"super-simple-queues/internal/queue"
+	"sync"
 )
+
+var ErrNotRunning = errors.New("not running")
 
 type Server struct {
 	queueManager   *queue.Manager
 	connBufferSize int
 	listener       net.Listener
+	mutex          sync.Mutex
 }
 
 func NewServer(queueManager *queue.Manager, connBufferSize int) *Server {
@@ -26,10 +30,16 @@ func (s *Server) Run(port int) error {
 		return err
 	}
 
+	s.mutex.Lock()
+
 	s.listener = l
 
+	s.mutex.Unlock()
+
+	var conn net.Conn
+
 	for {
-		conn, err := l.Accept()
+		conn, err = l.Accept()
 
 		if err != nil {
 			if errors.Is(err, net.ErrClosed) {
@@ -78,4 +88,28 @@ func (s *Server) processConnection(conn net.Conn) {
 			slog.Warn("failed to process connection", slog.Any("err", err), addrAttr)
 		}
 	}
+}
+
+func (s *Server) port() (int, error) {
+	s.mutex.Lock()
+
+	listener := s.listener
+
+	s.mutex.Unlock()
+
+	if listener != nil {
+		return listener.Addr().(*net.TCPAddr).Port, nil
+	}
+
+	return 0, ErrNotRunning
+}
+
+func (s *Server) close() error {
+	s.mutex.Lock()
+
+	listener := s.listener
+
+	s.mutex.Unlock()
+
+	return listener.Close()
 }

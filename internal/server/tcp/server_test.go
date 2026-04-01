@@ -2,6 +2,7 @@ package tcp
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -28,13 +29,23 @@ func TestMain(m *testing.M) {
 
 	go func() { _ = tcpServer.Run(0) }()
 
-	time.Sleep(time.Second)
+	var err error
 
-	tcpPort = tcpServer.listener.Addr().(*net.TCPAddr).Port
+	for {
+		tcpPort, err = tcpServer.port()
+
+		if errors.Is(err, ErrNotRunning) {
+			time.Sleep(100 * time.Millisecond)
+		} else if err == nil {
+			break
+		} else {
+			os.Exit(1)
+		}
+	}
 
 	code := m.Run()
 
-	_ = tcpServer.listener.Close()
+	_ = tcpServer.close()
 
 	os.Exit(code)
 }
