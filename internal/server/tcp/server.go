@@ -12,6 +12,7 @@ import (
 type Server struct {
 	queueManager   *queue.Manager
 	connBufferSize int
+	listener       net.Listener
 }
 
 func NewServer(queueManager *queue.Manager, connBufferSize int) *Server {
@@ -19,16 +20,22 @@ func NewServer(queueManager *queue.Manager, connBufferSize int) *Server {
 }
 
 func (s *Server) Run(port int) error {
-	tl, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	l, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 
 	if err != nil {
 		return err
 	}
 
+	s.listener = l
+
 	for {
-		conn, err := tl.Accept()
+		conn, err := l.Accept()
 
 		if err != nil {
+			if errors.Is(err, net.ErrClosed) {
+				return err
+			}
+
 			slog.Warn("failed to accept connection", slog.Any("err", err))
 
 			continue
@@ -42,10 +49,10 @@ func (s *Server) processConnection(conn net.Conn) {
 	addrAttr := slog.Any("addr", conn.RemoteAddr())
 
 	defer func() {
-		if err := conn.Close(); err == nil {
-			slog.Info("connection closed", addrAttr)
-		} else {
+		if err := conn.Close(); err != nil {
 			slog.Warn("failed to close connection", slog.Any("err", err), addrAttr)
+		} else {
+			slog.Info("connection closed", addrAttr)
 		}
 	}()
 
