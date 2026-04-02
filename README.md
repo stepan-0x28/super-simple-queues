@@ -2,8 +2,8 @@
 
 [![CI](https://github.com/stepan-0x28/super-simple-queues/actions/workflows/ci.yml/badge.svg)](https://github.com/stepan-0x28/super-simple-queues/actions/workflows/ci.yml)
 
-A super simple queuing system for passing data from one or more senders to one or more queues, with the possibility of
-receiving this data by one or more receivers.
+A super simple queuing system for sending data from one or more senders to one or more queues, with the ability to
+receive that data by one or more receivers.
 
 ### An example of the system operation in the diagram
 
@@ -39,7 +39,8 @@ docker build -t super-simple-queues .
 
 ```bash
 docker run -d --name super-simple-queues \
-    -e TCP_PORT=8888 -e HTTP_PORT=8080 -e QUEUE_CHUNK_SIZE=1024 -e LOGGING_LEVEL=Info -e TCP_CONN_BUFFER_SIZE=256 \
+    -e TCP_PORT=8888 -e HTTP_PORT=8080 -e QUEUE_CHUNK_SIZE=1024 \
+    -e LOGGING_LEVEL=Info -e TCP_CONN_BUFFER_SIZE=256 \
     -p 8888:8888 -p 8080:8080 \
   super-simple-queues
 ```
@@ -49,6 +50,33 @@ Or use Docker Compose, but first copy the `.env.example` file to the `.env` file
 ```bash
 docker compose up -d
 ```
+
+### Usage
+
+First you need to [**create a queue via HTTP**](#creating-a-queue), then you
+can [**send and/or receive data via TCP**](#interacting-with-the-system-via-tcp).
+
+## Interacting with the system via HTTP
+
+### Creating a queue
+
+**request**&nbsp;&nbsp;&nbsp;&nbsp;`POST /queues/{key}`  
+**response**&nbsp;`201` `{"message": "the queue has been created"}`
+
+### Getting information about the queue
+
+**request**&nbsp;&nbsp;&nbsp;&nbsp;`GET /queues/{key}`  
+**response**&nbsp;`200` `{"items_count": 0}`
+
+### Getting information about all queues
+
+**request**&nbsp;&nbsp;&nbsp;&nbsp;`GET /queues`  
+**response**&nbsp;`200` `{"queues_count":1,"queues_info":{"example-queue":{"items_count":0}}}`
+
+### Deleting a queue
+
+**request**&nbsp;&nbsp;&nbsp;&nbsp;`DELETE /queues/{key}`  
+**response**&nbsp;`200` `{"message": "the queue was successfully deleted"}`
 
 ## Interacting with the system via TCP
 
