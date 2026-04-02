@@ -61,12 +61,12 @@ can [**send and/or receive data via TCP**](#interacting-with-the-system-via-tcp)
 ### Creating a queue
 
 **request**&nbsp;&nbsp;&nbsp;&nbsp;`POST /queues/{key}`  
-**response**&nbsp;`201` `{"message": "the queue has been created"}`
+**response**&nbsp;`201` `{"message":"the queue has been created"}`
 
 ### Getting information about the queue
 
 **request**&nbsp;&nbsp;&nbsp;&nbsp;`GET /queues/{key}`  
-**response**&nbsp;`200` `{"items_count": 0}`
+**response**&nbsp;`200` `{"items_count":0}`
 
 ### Getting information about all queues
 
@@ -76,7 +76,7 @@ can [**send and/or receive data via TCP**](#interacting-with-the-system-via-tcp)
 ### Deleting a queue
 
 **request**&nbsp;&nbsp;&nbsp;&nbsp;`DELETE /queues/{key}`  
-**response**&nbsp;`200` `{"message": "the queue was successfully deleted"}`
+**response**&nbsp;`200` `{"message":"the queue was successfully deleted"}`
 
 ## Interacting with the system via TCP
 
